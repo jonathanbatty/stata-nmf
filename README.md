@@ -1,2 +1,2 @@
-# nmf
-Non-negative Matrix Factorisation (NMF), implemented in Stata using mata functions.
+# Non-negative Matrix Factorisation (NMF)
+Implemented in Stata using optimised mata functions.
