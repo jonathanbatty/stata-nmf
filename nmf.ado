@@ -28,9 +28,9 @@ program define nmf, rclass
     // To do: 
     // + Add a stopping condition, e.g. stoptolerance with default 1.0e-4 (like in scikit learn: https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.NMF.html and https://github.com/scikit-learn/scikit-learn/blob/36958fb24/sklearn/decomposition/_nmf.py#L1158)
     /// -> e.g. for all iterations beyond first, compare norms with previous value (i - 1)... if two successive norms are within a certain threshold; stop
-    // Implement Kullback–Leibler divergence
+    // Consider scaling random values -? by sqrt(average of input matrix / length of input matrix) as per skl?
     // Test and benchmark
-    // Implement TF-IDF (?separately)
+    // 
 
     // If a value for initialisation method is not pased, default option is is random initialisation 
     if "`initial'" == "" local initial "random"
@@ -101,16 +101,12 @@ void nmf(string scalar varlist,
 
     // Perform error checking:
     // 1. Ensure that input matrix is non-negative (i.e. no negative values)
-    negative = (A :< 0)
-    negativeValues = sum(negative)
-    if (negativeValues > 0) {
+    if (min(A) < 0) {
         _error("The input matrix must not contain negative values.")
     }
 
     // 2. Ensure that there are no missing values in the input matrix
-    missing = (A :== .)
-    missingValues = sum(missing)
-    if (missingValues > 0) {
+    if (hasmissing(A) == 1) {
         _error("The input matrix must not contain missing values.")
     }
 
@@ -157,10 +153,10 @@ void randomInit(real matrix A,
                 real matrix W, 
                 real matrix H)
 {
-    // Generate random values for W in the range [0 - 1]
+    // Generate random values for W in the range [1 - 2]
     W = runiform(rows(A), k, 1, 2)
 
-    // Generate random values for W in the range [0 - 1]
+    // Generate random values for W in the range [1 - 2]
     H = runiform(k, cols(A), 1, 2)
 }
 
@@ -228,9 +224,7 @@ void nnsvdInit(real matrix A,
     }
 
     // Calculate properties of input matrix for alternative methods below
-    numValues = rows(A) * cols(A)
-    sumOfMatrixValues = sum(A)
-    averageOfInputMatrix = sumOfMatrixValues / numValues
+    averageOfInputMatrix = length(A) / sum(A)
 
     // Replaces zero values in initialised matrices with average value of input matrix, A
     if (initial == "nndsvda") {
@@ -240,12 +234,18 @@ void nnsvdInit(real matrix A,
         H = editvalue(H, 0, averageOfInputMatrix)
 
     }
-    // Replace zeros in W with random value in the space [0 : average/100]
+    // Replace zeros in initialised matrices with random value in the space [0 : average/100]
     else if (initial == "nndsvdar") {
 
         // Update zeroes in W with averge vales, scaled
         W = editvalue(W, 0, averageOfInputMatrix * runiform(1, 1) / 100)
         H = editvalue(H, 0, averageOfInputMatrix * runiform(1, 1) / 100)
+    }
+    // Replace zeros in initialised matrices with the smallest possible positive value
+    else {
+        W = editvalue(W, 0, epsilon(1))
+        H = editvalue(H, 0, epsilon(1))
+        
     }
 }
 
@@ -327,6 +327,5 @@ void multiplicativeUpdating(real matrix A,
         norms[i, 1] = normResult
     }
 }
-
 
 end
