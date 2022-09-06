@@ -3,7 +3,7 @@ capture prog drop nmf
 program define nmf, rclass
     version 17
  
-    syntax varlist(numeric), k(integer) iter(integer) [initial(string) beta(numlist integer max = 1) nograph noframes]
+    syntax varlist(numeric), k(integer) iter(integer) [initial(string) beta(numlist integer max = 1) stop(numlist max = 1) nograph noframes]
     
     // The aim of NMF is to find W (u x k) and H (k x v) such that A ~ WH, where all 3 matrices contain only non-negative values
     // A good appoximation may be achieved with k << rank(A)
@@ -19,6 +19,10 @@ program define nmf, rclass
     //    1 - Generalized Kullback-Leibler divergence
     //    2 [*default] - Frobenius (Euclidean) norm
 
+    // Early stopping options, specified using the stop() parameter, include:
+    //    0 - early stopping off; NMF continues for numer of iterations specified in iter
+    //    float value, e.g. 1.0e-4 [*default] - if ((previous error - current error) / error at initiation) < stop tolerance) then further iterations are not performed
+
     // nograph suppresses production of the graph of beta divergence at each iteration
     // noframes does not save frames containing output matrices: W, H and norms 
 
@@ -26,21 +30,24 @@ program define nmf, rclass
     // https://proceedings.neurips.cc/paper/2000/file/f9d1152547c0bde01830b7e8bd60024c-Paper.pdf
 
     // To do: 
-    // + Add a stopping condition, e.g. stoptolerance with default 1.0e-4 (like in scikit learn: https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.NMF.html and https://github.com/scikit-learn/scikit-learn/blob/36958fb24/sklearn/decomposition/_nmf.py#L1158)
-    /// -> e.g. for all iterations beyond first, compare norms with previous value (i - 1)... if two successive norms are within a certain threshold; stop
     // Consider scaling random values -? by sqrt(average of input matrix / length of input matrix) as per skl?
+    // Consider implementing a version for large matrices (which uses st_view instead of st_data and minimises copy operations, uses cross() for matmul, etc)
     // Test and benchmark
     // 
 
-    // If a value for initialisation method is not pased, default option is is random initialisation 
+    // If a value for initialisation method is not passed, default option is is random initialisation 
     if "`initial'" == "" local initial "random"
 
-    // If a value specifying the form of beta divergence normalisation is not pased, default option is is Frobenius normalisation (2) 
+    // If a value specifying the form of beta divergence normalisation is not passed, default option is is Frobenius normalisation (2) 
     if "`beta'" == "" local beta = 2
 
+    // If a value specifying the stopping condition is not passed, default option is is 1.0e-4 (i.e. 0.01%)
+    if "`stop'" == "" local stop = 1.0e-4
+
     // Run NMF
-    mata: nmf("`varlist'", `k', `iter', "`initial'", `beta')
-    
+    mata: nmf("`varlist'", `k', `iter', "`initial'", `beta', `stop')
+
+
     // Store using stata matrices
     matrix W = r(W)
     matrix H = r(H)
@@ -48,6 +55,8 @@ program define nmf, rclass
 
     // Creates frames containing output matrices: W, H and norms
     if "`frames'" != "noframes" {
+        
+        display "Creating frames W, F and norms to hold results."
 
         // Create empty new frames to hold matrices
         foreach outputFrame in W H norms {
@@ -77,14 +86,28 @@ program define nmf, rclass
 
     // Plots the normalisation values calculated after each iteration
     if "`graph'" != "nograph" {
-        frame norms: graph twoway line norm iteration, yscale(range(0 .)) ylabel(#5)
+
+        display "Plotting graph of loss function..."
+
+        if `beta' == 0 local betaString "Itakura-Saito Divergence" 
+        if `beta' == 1 local betaString "Generalized Kullback-Leibler Divergence"
+        if `beta' == 2 local betaString "Frobenius (Euclidean) Normalization"
+
+        local plotIterations = colsof(norms)
+
+        frame norms: graph twoway line norm iteration, ///
+        title("Loss Function") ///
+        xtitle("Iteration") xlabel(, labsize(*0.75) grid glcolor(gs15)) ///
+        ytitle("`betaString'") yscale(range(0 .)) ylabel(#5, ang(h) labsize(*0.75) grid glcolor(gs15)) ///
+        graphregion(color(white))
     }
 
+    display "Returning final matrices in r(W), r(H) and r(norms)"
     // Return final results
     return matrix W W
     return matrix H H
     return matrix norms norms
-    
+
 end
 
 version 17
@@ -94,7 +117,8 @@ void nmf(string scalar varlist,
          real scalar k, 
          real scalar iter, 
          string scalar initial,
-         real scalar beta)
+         real scalar beta,
+         real scalar stop)
 {
     // Construct mata matrix from input varlist
     A = st_data(., varlist)
@@ -134,17 +158,16 @@ void nmf(string scalar varlist,
     
     // Create a column matrix (rows = iterations, columns = 1) to store normalisation results from each iteration
     real matrix norms 
-    norms = J(iter, 1, .)
+    norms = J(1, 1, .)
 
     // Perform multiplicative updating given number of iterations
-    multiplicativeUpdating(A, k, iter, W, H, e, norms, beta)
-        
+    printf("Factorizing matix using multiplicative update method.\n\n")
+    multiplicativeUpdating(A, k, iter, W, H, e, norms, beta, stop)
+
     // Return results object to stata
     st_matrix("r(W)", W)
     st_matrix("r(H)", H)
     st_matrix("r(norms)", norms)
-
-    return(nmf)
 }
 
 
@@ -288,7 +311,7 @@ scalar betaDivergence(real matrix A,
     else if (beta == 2) {
         // 2 = Frobenius (or Euclidean) norm
         delta = A - W*H
-        divergence = norm(delta, 0)
+        divergence = sqrt(sum(delta :^ 2))
     }
     else {
         _error("Invalid value for beta supplied.")
@@ -304,18 +327,19 @@ void multiplicativeUpdating(real matrix A,
                             real matrix H, 
                             real scalar e, 
                             real matrix norms,
-                            real scalar beta)
+                            real scalar beta,
+                            real scalar stop)
 {
     for (i = 1; i <= iter; i++) {
         
-        printf("Iteration " + strofreal(i) + " of " + strofreal(iter) + "\n")
-
         // Update H
+        real matrix W_TA, W_TWH
         W_TA = W' * A
         W_TWH = W' * W * H + J(rows(H), cols(H), e)
         H = H :* W_TA :/ W_TWH
-        
+
         // Update W
+        real matrix AH_T, WHH_T
         AH_T = A * H'
         WHH_T = W * H * H' + J(rows(W), cols(W), e)
         W = W :* AH_T :/ WHH_T
@@ -324,7 +348,43 @@ void multiplicativeUpdating(real matrix A,
         normResult = betaDivergence(A, W, H, beta)
 
         // Update norms matrix with result of current iteration
-        norms[i, 1] = normResult
+        if (i == 1) {
+            norms[1, 1] = normResult
+        }
+        else {
+            norm = J(1, 1, normResult)
+            norms = norms \ norm
+        }
+
+        // Print result of iteration to the screen
+        betaMethodString = ""
+        if (beta == 0) {
+            betaMethodString = "Itakura-Saito Divergence"
+        }
+        else if (beta == 1) {
+            betaMethodString =  "Generalized Kullback-Leibler Divergence"
+        }
+        else if (beta == 2) {
+            betaMethodString = "Frobenius (Euclidean) Norm"
+        }
+
+        if (i == 1 | mod(i, 10) == 0 | i == iter) {
+            printf("Iteration " + strofreal(i) + " of " + strofreal(iter) + ":\t\tLoss - " + betaMethodString + ":  %9.2f\n", normResult)
+        }
+        
+        // Implement stopping rule if one is set (i.e. stop > 0)
+        // Checks every 10 iterations whether MU should contine or if it should stop.
+        if (stop != 0 & mod(i, 10) == 0){
+
+            // if ((previous error - current error) / error at initiation) < stop tolerance) then stop
+            stopMeasure = (norms[i - 1, 1] - norms[i, 1]) / norms[1, 1]
+            if (stopMeasure < stop)
+            {
+                printf("\nStopping at iteration " + strofreal(i) + "...\n")
+                printf("Criteria for early stoping have been met. Error reduced to: " + strofreal(stopMeasure) + ", which < the stopping threshold (" + strofreal(stop) +").\n\n")
+                break
+            }
+        }
     }
 }
 
