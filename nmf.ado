@@ -5,17 +5,21 @@ program define nmf, rclass
  
     syntax varlist(numeric), k(integer) iter(integer) [initial(string) beta(numlist integer max = 1) stop(numlist max = 1) nograph noframes]
     
+    // Aim:
     // The aim of NMF is to find W (u x k) and H (k x v) such that A ~ WH, where all 3 matrices contain only non-negative values
     // A good appoximation may be achieved with k << rank(A)
 
+    // Parameters:
     // Initialisation options, specified using the init() parameter, include:
     //    random [*default] - random initialisation of matrix in range [0, 1] 
     //    nndsvd - Nonnegative Double Singular Value Decomposition [Boutsidis2007] - suited to sparse factors
     //    nndsvda - NNSVD with zero elements replaced with the input matrix average (not recommended for sparse data)
     //    nndsvdar - NNSVD with zero elements replaced with a random value (nor recommended for sparse data)
+    // Using the random option, multiple runs will be required to identify the factorization that achieves the lowest approximation error. Other options are deterministic and only need to be ran once.
+    // Note: The multiplicative update ('mu') solver cannot update zeros present in the initialization, and so leads to poorer results when used jointly with nndsvd. Co-ordinate descent mitigates this
 
     // Beta divergence options, specified using the beta() parameter, include:
-    //    0 - Itakura-Saito divergence
+    //    0 - Itakura-Saito divergence 
     //    1 - Generalized Kullback-Leibler divergence
     //    2 [*default] - Frobenius (Euclidean) norm
 
@@ -29,8 +33,30 @@ program define nmf, rclass
     // Uses multiplicative update method of Lee and Seung in 1999: 
     // https://proceedings.neurips.cc/paper/2000/file/f9d1152547c0bde01830b7e8bd60024c-Paper.pdf
 
+    // To assess the ideal value of k:
+    //      Plot k vs residual sum of squares (i.e. Frobenius norm) and look for the value of r that shows an inflection point
+    //      Plot k vs cophenetic correlation coefficient
+    // 
+
     // To do: 
+    // implement solver() - Alternate Least Square (ALS) approach of co-ordinate descent,  Kim H, Park H: Sparse non-negative matrix factorizations via alternating non-negativity-constrained least squares for microarray data analysis. Bioinformatics (Oxford, England) 2007, 23:1495-502 [http://www.ncbi.nlm.nih.gov/pubmed/17483501]
+    // Implement cophenetic correlation coefficient as a measure of stability of the clusters -  Brunet JP, Tamayo P, Golub TR, Mesirov JP: Metagenes and molecular pattern discovery using matrix factorization. Proceedings of the National Academy of Sciences of the United States of America 2004, 101:4164-9 [http://www.ncbi.nlm.nih.gov/pubmed/15016911].
     // Consider scaling random values -? by sqrt(average of input matrix / length of input matrix) as per skl?
+    // Consensus clustering: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC384712/
+    //    1. After each run of NMF, allocate each patient to a 'cluster' based on the highest value in the result matrix 
+    //    2. Plot a connectivity matrix, C, of M x M (patients x patients) with 1 = in same cluster and 0 = not in same cluster. Save this matrix.
+    //    3. Average the connnectivity matrices over all runs (number of runs is selected by continuing until C̄ appears to stabilize; typically 20–100 runs suffice). Entries 
+    //       of C are in the range [0, 1]. This dispersion between 0 and 1 therefore measures the reproducibility of the class assignments with respect to random initial conditions
+    //       This wll eb a symmerical matrix, diagonals will be 1.
+    //    4. Use average linkage HC to reorder the patients and thus the rows and columns of C
+    //    5. Evaluate the stability of clustering associated with a given rank k
+    //    6. Calculate the cophenetic correlation coefficient ρk(C̄) which indicates the dispersion of the consensus matrix C̄
+    //         (a) ρk is computed as the Pearson correlation of two distance matrices: the first, I-C̄, is the distance between samples induced by the consensus matrix, 
+    //             and the second is the distance between samples induced by the linkage used in the reordering of C̄
+    //       In a perfect consensus matrix (all entries = 0 or 1), the cophenetic correlation coefficient equals 1. When the entries are scattered between 0 and 1, the cophenetic correlation coefficient is <1.
+    //       We observe how ρk changes as k increases. We select values of k where the magnitude of the cophenetic correlation coefficient begins to fall
+
+    // Consider adding a regularisation function defined to enforce, e.g. smoothness, sparsity on W and H
     // Consider implementing a version for large matrices (which uses st_view instead of st_data and minimises copy operations, uses cross() for matmul, etc)
     // Test and benchmark
     // 
@@ -135,8 +161,8 @@ void nmf(string scalar varlist,
     }
 
     // 3. Ensure that specified rank, k,  is valid (i.e. 2 < k < rank(A))
-    if (k < 2 | k >= cols(A)) {
-        _error("The rank of the output matrix must be at least 2, but less than the rank of the input matrix, A.")
+    if (k < 2 | k >= cols(A) | k >= rows(A)) {
+        _error("The rank of the output matrix must be at least 2, but less than the number of rows and columns of the input matrix, A.")
     }
 
     // Declaration of output matrices
@@ -387,5 +413,29 @@ void multiplicativeUpdating(real matrix A,
         }
     }
 }
+
+void coordinateDescentUpdating(real matrix A, 
+                               real scalar k, 
+                               real scalar iter, 
+                               real matrix W, 
+                               real matrix H, 
+                               real scalar e, 
+                               real matrix norms,
+                               real scalar beta,
+                               real scalar stop)
+{
+    for (i = 1; i <= iter; i++) {
+        
+
+        //http://www.cs.cornell.edu/~bindel/class/sjtu-summer18/lec/2018-06-21.pdf
+        //https://gist.github.com/mblondel/09648344984565f9477a
+
+        // line 420: https://github.com/scikit-learn/scikit-learn/blob/36958fb240fbe435673a9e3c52e769f01f36bec0/sklearn/decomposition/_nmf.py#L420
+
+
+    }
+}
+
+
 
 end
