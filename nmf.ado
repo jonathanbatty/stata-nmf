@@ -3,42 +3,49 @@ capture prog drop nmf
 program define nmf, rclass
     version 17
  
-    syntax varlist(numeric), k(integer) iter(integer) [initial(string) beta(numlist integer max = 1) stop(numlist max = 1) nograph noframes]
+    syntax varlist(numeric), k(integer) iter(integer) [initial(string) method(string) beta(numlist integer max = 1) stop(numlist max = 1) nograph noframes]
     
+
+    // Written by Dr Jonathan Batty (J.Batty@leeds.ac.uk)
+    // at the Leeds Institute for Data Analytics (LIDA),
+    // University of Leeds.
+    //
     // Aim:
     // The aim of NMF is to find W (u x k) and H (k x v) such that A ~ WH, where all 3 matrices contain only non-negative values
     // A good appoximation may be achieved with k << rank(A)
+    //
+    // <Inputs>:
+    //      initial(): initialisation options, specified using the init() parameter, include:
+    //          random [*default] - random initialisation of matrix in range [0, 1] 
+    //          nndsvd - Nonnegative Double Singular Value Decomposition [Boutsidis2007] - suited to sparse factors
+    //          nndsvda - NNSVD with zero elements replaced with the input matrix average (not recommended for sparse data)
+    //          nndsvdar - NNSVD with zero elements replaced with a random value (nor recommended for sparse data)
+    //      Using the random option, multiple runs will be required to identify the factorization that achieves the lowest approximation error. Other options are deterministic and only need to be ran once.
+    //      Note: The multiplicative update ('mu') solver cannot update zeros present in the initialization, and so leads to poorer results when used jointly with nndsvd. Co-ordinate descent mitigates this
+    //
+    //      method(): method of updating matrices at each iteration
+    //          mu [*default]
+    //          
+    //
+    //      beta(): beta divergence options, specified using the beta() parameter, include:
+    //          0 - Itakura-Saito divergence 
+    //          1 - Generalized Kullback-Leibler divergence
+    //          2 [*default] - Frobenius (Euclidean) norm
+    //
+    //      stop(): early stopping options, specified using the stop() parameter, include:
+    //          0 - early stopping off; NMF continues for numer of iterations specified in iter
+    //          float value, e.g. 1.0e-4 [*default] - if ((previous error - current error) / error at initiation) < stop tolerance) then further iterations are not performed
+    //
+    //      nograph suppresses production of the graph of beta divergence at each iteration
+    //
+    //      noframes does not save frames containing output matrices: W, H and norms 
+    //
+    // <Outputs>
+    //      W
+    //      H
+    //
 
-    // Parameters:
-    // Initialisation options, specified using the init() parameter, include:
-    //    random [*default] - random initialisation of matrix in range [0, 1] 
-    //    nndsvd - Nonnegative Double Singular Value Decomposition [Boutsidis2007] - suited to sparse factors
-    //    nndsvda - NNSVD with zero elements replaced with the input matrix average (not recommended for sparse data)
-    //    nndsvdar - NNSVD with zero elements replaced with a random value (nor recommended for sparse data)
-    // Using the random option, multiple runs will be required to identify the factorization that achieves the lowest approximation error. Other options are deterministic and only need to be ran once.
-    // Note: The multiplicative update ('mu') solver cannot update zeros present in the initialization, and so leads to poorer results when used jointly with nndsvd. Co-ordinate descent mitigates this
-
-    // Beta divergence options, specified using the beta() parameter, include:
-    //    0 - Itakura-Saito divergence 
-    //    1 - Generalized Kullback-Leibler divergence
-    //    2 [*default] - Frobenius (Euclidean) norm
-
-    // Early stopping options, specified using the stop() parameter, include:
-    //    0 - early stopping off; NMF continues for numer of iterations specified in iter
-    //    float value, e.g. 1.0e-4 [*default] - if ((previous error - current error) / error at initiation) < stop tolerance) then further iterations are not performed
-
-    // nograph suppresses production of the graph of beta divergence at each iteration
-    // noframes does not save frames containing output matrices: W, H and norms 
-
-    // Uses multiplicative update method of Lee and Seung in 1999: 
-    // https://proceedings.neurips.cc/paper/2000/file/f9d1152547c0bde01830b7e8bd60024c-Paper.pdf
-
-    // To assess the ideal value of k:
-    //      Plot k vs residual sum of squares (i.e. Frobenius norm) and look for the value of r that shows an inflection point
-    //      Plot k vs cophenetic correlation coefficient
-    // 
-
-    // To do: 
+    // To do: implement coordinate descent solver from SKlearn
     // implement solver() - Alternate Least Square (ALS) approach of co-ordinate descent,  Kim H, Park H: Sparse non-negative matrix factorizations via alternating non-negativity-constrained least squares for microarray data analysis. Bioinformatics (Oxford, England) 2007, 23:1495-502 [http://www.ncbi.nlm.nih.gov/pubmed/17483501]
     // Implement cophenetic correlation coefficient as a measure of stability of the clusters -  Brunet JP, Tamayo P, Golub TR, Mesirov JP: Metagenes and molecular pattern discovery using matrix factorization. Proceedings of the National Academy of Sciences of the United States of America 2004, 101:4164-9 [http://www.ncbi.nlm.nih.gov/pubmed/15016911].
     // Consider scaling random values -? by sqrt(average of input matrix / length of input matrix) as per skl?
@@ -60,9 +67,12 @@ program define nmf, rclass
     // Consider implementing a version for large matrices (which uses st_view instead of st_data and minimises copy operations, uses cross() for matmul, etc)
     // Test and benchmark
     // 
-
+    
     // If a value for initialisation method is not passed, default option is is random initialisation 
     if "`initial'" == "" local initial "random"
+
+    // If a value for updating method is not passed, default option is is multiplicative updating (mu) 
+    if "`method'" == "" local method "mu"
 
     // If a value specifying the form of beta divergence normalisation is not passed, default option is is Frobenius normalisation (2) 
     if "`beta'" == "" local beta = 2
@@ -71,8 +81,7 @@ program define nmf, rclass
     if "`stop'" == "" local stop = 1.0e-4
 
     // Run NMF
-    mata: nmf("`varlist'", `k', `iter', "`initial'", `beta', `stop')
-
+    mata: nmf("`varlist'", `k', `iter', "`initial'", "`method'", `beta', `stop')
 
     // Store using stata matrices
     matrix W = r(W)
@@ -143,12 +152,13 @@ void nmf(string scalar varlist,
          real scalar k, 
          real scalar iter, 
          string scalar initial,
+         string scalar method,
          real scalar beta,
          real scalar stop)
 {
     // Construct mata matrix from input varlist
     A = st_data(., varlist)
-
+    
     // Perform error checking:
     // 1. Ensure that input matrix is non-negative (i.e. no negative values)
     if (min(A) < 0) {
@@ -186,9 +196,60 @@ void nmf(string scalar varlist,
     real matrix norms 
     norms = J(1, 1, .)
 
-    // Perform multiplicative updating given number of iterations
-    printf("Factorizing matix using multiplicative update method.\n\n")
-    multiplicativeUpdating(A, k, iter, W, H, e, norms, beta, stop)
+    // Updating matrices the given number of iterations
+    printf("Factorizing matix...n\n")
+
+    // Update W and H
+    for (i = 1; i <= iter; i++) {
+
+        if (method == "mu") {
+            mu(A, W, H, e)
+        }
+        
+        // Calculate norm of difference matrix
+        normResult = betaDivergence(A, W, H, beta)
+
+        // Update norms matrix with result of current iteration
+        if (i == 1) {
+            norms[1, 1] = normResult
+        }
+        else {
+            norm = J(1, 1, normResult)
+            norms = norms \ norm
+        }
+
+        // Print result of iteration to the screen
+        betaMethodString = ""
+        if (beta == 0) {
+            betaMethodString = "Itakura-Saito Divergence"
+        }
+        else if (beta == 1) {
+            betaMethodString =  "Generalized Kullback-Leibler Divergence"
+        }
+        else if (beta == 2) {
+            betaMethodString = "Frobenius (Euclidean) Norm"
+        }
+
+        if (i == 1 | mod(i, 10) == 0 | i == iter) {
+            printf("Iteration " + strofreal(i) + " of " + strofreal(iter) + ":\t\tLoss - " + betaMethodString + ":  %9.2f\n", normResult)
+        }
+        
+        // Implement stopping rule if one is set (i.e. stop > 0)
+        // Checks every 10 iterations whether MU should contine or if it should stop.
+        if (stop != 0 & mod(i, 10) == 0){
+
+            // if ((previous error - current error) / error at initiation) < stop tolerance) then stop
+            stopMeasure = (norms[i - 1, 1] - norms[i, 1]) / norms[1, 1]
+            if (stopMeasure < stop)
+            {
+                printf("\nStopping at iteration " + strofreal(i) + "...\n")
+                printf("Criteria for early stoping have been met. Error reduced to: " + strofreal(stopMeasure) + ", which < the stopping threshold (" + strofreal(stop) +").\n\n")
+                break
+            }
+        }
+
+    
+    }
 
     // Return results object to stata
     st_matrix("r(W)", W)
@@ -346,96 +407,32 @@ scalar betaDivergence(real matrix A,
     return(divergence)
 }
 
-void multiplicativeUpdating(real matrix A, 
-                            real scalar k, 
-                            real scalar iter, 
-                            real matrix W, 
-                            real matrix H, 
-                            real scalar e, 
-                            real matrix norms,
-                            real scalar beta,
-                            real scalar stop)
+void mu(real matrix A,
+        real matrix W, 
+        real matrix H, 
+        real scalar e)
 {
-    for (i = 1; i <= iter; i++) {
-        
-        // Update H
-        real matrix W_TA, W_TWH
-        W_TA = W' * A
-        W_TWH = W' * W * H + J(rows(H), cols(H), e)
-        H = H :* W_TA :/ W_TWH
 
-        // Update W
-        real matrix AH_T, WHH_T
-        AH_T = A * H'
-        WHH_T = W * H * H' + J(rows(W), cols(W), e)
-        W = W :* AH_T :/ WHH_T
-        
-        // Calculate norm of difference matrix
-        normResult = betaDivergence(A, W, H, beta)
+    // References: 
+    // [1]    Lee, D. and Seung, H. Algorithms for Non-negative Matrix Factorization.
+    //        Advances in Neural Information Processing Systems 13: Proceedings of the 2000 Conference,
+    //        MIT Press. pp. 556–562, 2000.
+    // [2]    Lee, D. and Seung, H. Learning the parts of objects by non-negative matrix factorization. 
+    //        Nature 401, pp. 788–791 (1999).
 
-        // Update norms matrix with result of current iteration
-        if (i == 1) {
-            norms[1, 1] = normResult
-        }
-        else {
-            norm = J(1, 1, normResult)
-            norms = norms \ norm
-        }
+    // Update H
+    real matrix W_TA, W_TWH
+    W_TA = W' * A
+    W_TWH = W' * W * H + J(rows(H), cols(H), e)
+    H = H :* W_TA :/ W_TWH
 
-        // Print result of iteration to the screen
-        betaMethodString = ""
-        if (beta == 0) {
-            betaMethodString = "Itakura-Saito Divergence"
-        }
-        else if (beta == 1) {
-            betaMethodString =  "Generalized Kullback-Leibler Divergence"
-        }
-        else if (beta == 2) {
-            betaMethodString = "Frobenius (Euclidean) Norm"
-        }
+    // Update W
+    real matrix AH_T, WHH_T
+    AH_T = A * H'
+    WHH_T = W * H * H' + J(rows(W), cols(W), e)
+    W = W :* AH_T :/ WHH_T
 
-        if (i == 1 | mod(i, 10) == 0 | i == iter) {
-            printf("Iteration " + strofreal(i) + " of " + strofreal(iter) + ":\t\tLoss - " + betaMethodString + ":  %9.2f\n", normResult)
-        }
-        
-        // Implement stopping rule if one is set (i.e. stop > 0)
-        // Checks every 10 iterations whether MU should contine or if it should stop.
-        if (stop != 0 & mod(i, 10) == 0){
-
-            // if ((previous error - current error) / error at initiation) < stop tolerance) then stop
-            stopMeasure = (norms[i - 1, 1] - norms[i, 1]) / norms[1, 1]
-            if (stopMeasure < stop)
-            {
-                printf("\nStopping at iteration " + strofreal(i) + "...\n")
-                printf("Criteria for early stoping have been met. Error reduced to: " + strofreal(stopMeasure) + ", which < the stopping threshold (" + strofreal(stop) +").\n\n")
-                break
-            }
-        }
-    }
 }
-
-void coordinateDescentUpdating(real matrix A, 
-                               real scalar k, 
-                               real scalar iter, 
-                               real matrix W, 
-                               real matrix H, 
-                               real scalar e, 
-                               real matrix norms,
-                               real scalar beta,
-                               real scalar stop)
-{
-    for (i = 1; i <= iter; i++) {
-        
-
-        //http://www.cs.cornell.edu/~bindel/class/sjtu-summer18/lec/2018-06-21.pdf
-        //https://gist.github.com/mblondel/09648344984565f9477a
-
-        // line 420: https://github.com/scikit-learn/scikit-learn/blob/36958fb240fbe435673a9e3c52e769f01f36bec0/sklearn/decomposition/_nmf.py#L420
-
-
-    }
-}
-
 
 
 end
