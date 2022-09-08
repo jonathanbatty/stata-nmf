@@ -199,16 +199,20 @@ void nmf(string scalar varlist,
     // Updating matrices the given number of iterations
     printf("Factorizing matix...n\n")
 
-    // Update W and H
+    // Update W and H by chosen update method
     for (i = 1; i <= iter; i++) {
 
         if (method == "mu") {
             mu(A, W, H, e)
         }
+        else if (method == "cd") {
+            cd(A, W, H)
+        }
+
         
         // Calculate norm of difference matrix
         normResult = betaDivergence(A, W, H, beta)
-
+        
         // Update norms matrix with result of current iteration
         if (i == 1) {
             norms[1, 1] = normResult
@@ -237,9 +241,10 @@ void nmf(string scalar varlist,
         // Implement stopping rule if one is set (i.e. stop > 0)
         // Checks every 10 iterations whether MU should contine or if it should stop.
         if (stop != 0 & mod(i, 10) == 0){
-
+            
             // if ((previous error - current error) / error at initiation) < stop tolerance) then stop
             stopMeasure = (norms[i - 1, 1] - norms[i, 1]) / norms[1, 1]
+            
             if (stopMeasure < stop)
             {
                 printf("\nStopping at iteration " + strofreal(i) + "...\n")
@@ -434,5 +439,52 @@ void mu(real matrix A,
 
 }
 
+
+
+void cd(real matrix A, 
+        real matrix W, 
+        real matrix H)
+{
+    // Implements 2-block co-ordinate descent with HALS
+
+    // References:
+    // [1]    
+
+    // Update W
+    W = HALS(A, H, W)
+    
+    // Update H
+    H = (HALS(A', W', H'))'
+
+}
+
+real matrix HALS(real matrix A, 
+                 real matrix H, 
+                 real matrix W)
+{
+
+    // Reference
+    m = rows(W)
+    n = cols(W)
+    
+    for (l = 1; l <= n; l++) {
+        _C = J(m, 1, 0)
+        for (k = 1; k <= n; k++) {
+            if (k != l) {
+                _A = H[k, .] * (H[l, .])'
+                _B = W[., k]
+                _C = _C + _B * _A
+            }
+        }
+        _D = A * H[l, .]'
+        _E = (sqrt(sum(H[l, .] :^ 2))) ^ 2
+        _F = (_D - _C) / _E
+
+        _F[., 1] = (_F[., 1] :>= 0 ) :* _F[., 1]    
+
+        W[., l] = _F[., 1]
+    }
+    return(W)
+}
 
 end
