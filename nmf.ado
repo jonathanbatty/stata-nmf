@@ -1,11 +1,10 @@
-capture prog drop nmf
+capture program drop nmf
 *! version 0.01 05 Sep 2022
 program define nmf, rclass
     version 17
  
     syntax varlist(numeric), k(integer) iter(integer) [initial(string) method(string) beta(numlist integer max = 1) stop(numlist max = 1) nograph noframes]
     
-
     // Written by Dr Jonathan Batty (J.Batty@leeds.ac.uk)
     // at the Leeds Institute for Data Analytics (LIDA),
     // University of Leeds.
@@ -24,7 +23,8 @@ program define nmf, rclass
     //      Note: The multiplicative update ('mu') solver cannot update zeros present in the initialization, and so leads to poorer results when used jointly with nndsvd. Co-ordinate descent mitigates this
     //
     //      method(): method of updating matrices at each iteration
-    //          mu [*default]
+    //          cd [*default] - two-block co-ordinate descent, using the fast hierarchical alternate least squares method (fast-HALS) of Cichocki and Phan (2009)
+    //          mu - multiplicative updating of W and H, using the method of Lee and Seung (1999)
     //          
     //
     //      beta(): beta divergence options, specified using the beta() parameter, include:
@@ -41,38 +41,24 @@ program define nmf, rclass
     //      noframes does not save frames containing output matrices: W, H and norms 
     //
     // <Outputs>
-    //      W
-    //      H
+    //      W - 
+    //      H - 
     //
 
-    // To do: implement coordinate descent solver from SKlearn
-    // implement solver() - Alternate Least Square (ALS) approach of co-ordinate descent,  Kim H, Park H: Sparse non-negative matrix factorizations via alternating non-negativity-constrained least squares for microarray data analysis. Bioinformatics (Oxford, England) 2007, 23:1495-502 [http://www.ncbi.nlm.nih.gov/pubmed/17483501]
-    // Implement cophenetic correlation coefficient as a measure of stability of the clusters -  Brunet JP, Tamayo P, Golub TR, Mesirov JP: Metagenes and molecular pattern discovery using matrix factorization. Proceedings of the National Academy of Sciences of the United States of America 2004, 101:4164-9 [http://www.ncbi.nlm.nih.gov/pubmed/15016911].
-    // Consider scaling random values -? by sqrt(average of input matrix / length of input matrix) as per skl?
-    // Consensus clustering: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC384712/
-    //    1. After each run of NMF, allocate each patient to a 'cluster' based on the highest value in the result matrix 
-    //    2. Plot a connectivity matrix, C, of M x M (patients x patients) with 1 = in same cluster and 0 = not in same cluster. Save this matrix.
-    //    3. Average the connnectivity matrices over all runs (number of runs is selected by continuing until C̄ appears to stabilize; typically 20–100 runs suffice). Entries 
-    //       of C are in the range [0, 1]. This dispersion between 0 and 1 therefore measures the reproducibility of the class assignments with respect to random initial conditions
-    //       This wll eb a symmerical matrix, diagonals will be 1.
-    //    4. Use average linkage HC to reorder the patients and thus the rows and columns of C
-    //    5. Evaluate the stability of clustering associated with a given rank k
-    //    6. Calculate the cophenetic correlation coefficient ρk(C̄) which indicates the dispersion of the consensus matrix C̄
-    //         (a) ρk is computed as the Pearson correlation of two distance matrices: the first, I-C̄, is the distance between samples induced by the consensus matrix, 
-    //             and the second is the distance between samples induced by the linkage used in the reordering of C̄
-    //       In a perfect consensus matrix (all entries = 0 or 1), the cophenetic correlation coefficient equals 1. When the entries are scattered between 0 and 1, the cophenetic correlation coefficient is <1.
-    //       We observe how ρk changes as k increases. We select values of k where the magnitude of the cophenetic correlation coefficient begins to fall
-
-    // Consider adding a regularisation function defined to enforce, e.g. smoothness, sparsity on W and H
-    // Consider implementing a version for large matrices (which uses st_view instead of st_data and minimises copy operations, uses cross() for matmul, etc)
-    // Test and benchmark
+    // To do: 
+    // Implement 'trace' parameter (default = 1) that specifies how often to calculate error
+    // Implement for missing data / imputation
+    // Graph requires frames! Make sure this is fixed
+    // ? Optimise for large matrices and generally: use pointers to prevent repeatedly copying data
+    // Consider implementing cross() for matrix multiplication, operations.
+    // Test, benchmark and optimise
     // 
     
     // If a value for initialisation method is not passed, default option is is random initialisation 
     if "`initial'" == "" local initial "random"
 
     // If a value for updating method is not passed, default option is is multiplicative updating (mu) 
-    if "`method'" == "" local method "mu"
+    if "`method'" == "" local method "cd"
 
     // If a value specifying the form of beta divergence normalisation is not passed, default option is is Frobenius normalisation (2) 
     if "`beta'" == "" local beta = 2
@@ -156,6 +142,12 @@ void nmf(string scalar varlist,
          real scalar beta,
          real scalar stop)
 {
+    // Declare all variable types
+    real matrix A, W, H
+    real colvector norm, norms
+    real scalar e, i, normResult, stopMeasure
+    string scalar betaMethodString
+
     // Construct mata matrix from input varlist
     A = st_data(., varlist)
     
@@ -175,8 +167,12 @@ void nmf(string scalar varlist,
         _error("The rank of the output matrix must be at least 2, but less than the number of rows and columns of the input matrix, A.")
     }
 
-    // Declaration of output matrices
-    real matrix W, H
+    // Warn about use of nndsvd with mu
+    if (initial == "nndsvd" & method == "mu") {
+        printf("Warning: the matrices H and W initialized by NNDSVD may contain zeroes.\n") 
+        printf("These will not be updated duing multiplicative updating.\n")
+        printf("For better results, select a different initializstion or update method..\n")
+    }
 
     // Initialisation of matrix
     if (initial == "random") {
@@ -188,31 +184,26 @@ void nmf(string scalar varlist,
     else {
         printf("Error - an invalid initialisation type has been set.")
     }
-
-    // Declare value of e
-    e = 1.0e-10
-    
+  
     // Create a column matrix (rows = iterations, columns = 1) to store normalisation results from each iteration
-    real matrix norms 
     norms = J(1, 1, .)
 
     // Updating matrices the given number of iterations
-    printf("Factorizing matix...n\n")
-
+    printf("Factorizing matix...\n\n")
+    
     // Update W and H by chosen update method
     for (i = 1; i <= iter; i++) {
-
         if (method == "mu") {
-            mu(A, W, H, e)
+            mu(A, W, H)
         }
         else if (method == "cd") {
             cd(A, W, H)
         }
 
-        
-        // Calculate norm of difference matrix
+        // Calculate divergence (error) metric
+        // This could be done every 5, 10 etc iterations ('trace' parameter)?
         normResult = betaDivergence(A, W, H, beta)
-        
+
         // Update norms matrix with result of current iteration
         if (i == 1) {
             norms[1, 1] = normResult
@@ -223,7 +214,6 @@ void nmf(string scalar varlist,
         }
 
         // Print result of iteration to the screen
-        betaMethodString = ""
         if (beta == 0) {
             betaMethodString = "Itakura-Saito Divergence"
         }
@@ -244,16 +234,14 @@ void nmf(string scalar varlist,
             
             // if ((previous error - current error) / error at initiation) < stop tolerance) then stop
             stopMeasure = (norms[i - 1, 1] - norms[i, 1]) / norms[1, 1]
-            
+    
             if (stopMeasure < stop)
             {
                 printf("\nStopping at iteration " + strofreal(i) + "...\n")
                 printf("Criteria for early stoping have been met. Error reduced to: " + strofreal(stopMeasure) + ", which < the stopping threshold (" + strofreal(stop) +").\n\n")
                 break
             }
-        }
-
-    
+        }    
     }
 
     // Return results object to stata
@@ -268,6 +256,7 @@ void randomInit(real matrix A,
                 real matrix W, 
                 real matrix H)
 {
+    
     // Generate random values for W in the range [1 - 2]
     W = runiform(rows(A), k, 1, 2)
 
@@ -281,10 +270,10 @@ void nnsvdInit(real matrix A,
                real matrix H, 
                string scalar initial)
 {
-    // Declare empty matrices to hold results of SVD
-    real matrix U
-    real matrix S
-    real matrix V
+    // Declare all variable types used in this function
+    real matrix U, S, V
+    real colvector ui, vi, ui_pos, ui_neg, vi_pos, vi_neg, _ui, _vi
+    real scalar i, ui_pos_norm, ui_neg_norm, vi_pos_norm, vi_neg_norm, norm_pos, norm_neg, sigma, averageOfInputMatrix
 
     // Perform SVD and transpose resulting S matrix
     svd(A, U, S, V)
@@ -338,12 +327,13 @@ void nnsvdInit(real matrix A,
         H[i, .] = sqrt(S[1, i] * sigma) * _vi'
     }
 
-    // Calculate properties of input matrix for alternative methods below
-    averageOfInputMatrix = length(A) / sum(A)
 
     // Replaces zero values in initialised matrices with average value of input matrix, A
     if (initial == "nndsvda") {
         
+        // Calculate properties of input matrix
+        averageOfInputMatrix = length(A) / sum(A)
+
         // Update zeros with average values of input matrix
         W = editvalue(W, 0, averageOfInputMatrix)
         H = editvalue(H, 0, averageOfInputMatrix)
@@ -351,6 +341,9 @@ void nnsvdInit(real matrix A,
     }
     // Replace zeros in initialised matrices with random value in the space [0 : average/100]
     else if (initial == "nndsvdar") {
+
+        // Calculate properties of input matrix
+        averageOfInputMatrix = length(A) / sum(A)
 
         // Update zeroes in W with averge vales, scaled
         W = editvalue(W, 0, averageOfInputMatrix * runiform(1, 1) / 100)
@@ -369,6 +362,13 @@ scalar betaDivergence(real matrix A,
                       real matrix H,
                       real scalar beta)
 {
+    // Declare all variable types
+    real matrix div, delta
+    real rowvector A_data, WH_data
+    real colvector log_div
+    real scalar divergence, sum_WH, res
+
+    // Logic flow based on parameter passed to nmf()
     if (beta == 0) {
         // 0 = Itakura-Saito divergence (only if no zero/missing values)
         div = A :/ (W*H)
@@ -376,11 +376,10 @@ scalar betaDivergence(real matrix A,
     }
     else if (beta == 1) {
         // 1 = Generalized Kullback-Leibler divergence
-        WH = W*H
         
         // Unravel A and WH to single row vectors
         A_data = rowshape(A, 1)
-        WH_data = rowshape(WH, 1)
+        WH_data = rowshape(W*H, 1)
 
         // Replace values of WH that are 0 to a very small value to prevent div by 0 errors
         A_data = (A_data :>= epsilon(1)) :* A_data
@@ -388,7 +387,7 @@ scalar betaDivergence(real matrix A,
 
         WH_data = editvalue(WH_data, 0, epsilon(1))
         
-        sum_WH = sum(WH)
+        sum_WH = sum(W*H)
         div = A_data :/ WH_data
         div = editvalue(div, 0, 1)
         
@@ -414,8 +413,7 @@ scalar betaDivergence(real matrix A,
 
 void mu(real matrix A,
         real matrix W, 
-        real matrix H, 
-        real scalar e)
+        real matrix H)
 {
 
     // References: 
@@ -425,14 +423,19 @@ void mu(real matrix A,
     // [2]    Lee, D. and Seung, H. Learning the parts of objects by non-negative matrix factorization. 
     //        Nature 401, pp. 788–791 (1999).
 
+    // Declare all variable types
+    real matrix W_TA, W_TWH, AH_T, WHH_T
+    real scalar e
+
+    // Declare value of e
+    e = 1.0e-10
+
     // Update H
-    real matrix W_TA, W_TWH
     W_TA = W' * A
     W_TWH = W' * W * H + J(rows(H), cols(H), e)
     H = H :* W_TA :/ W_TWH
 
     // Update W
-    real matrix AH_T, WHH_T
     AH_T = A * H'
     WHH_T = W * H * H' + J(rows(W), cols(W), e)
     W = W :* AH_T :/ WHH_T
@@ -445,10 +448,13 @@ void cd(real matrix A,
         real matrix W, 
         real matrix H)
 {
-    // Implements 2-block co-ordinate descent with HALS
+    // Implements 2-block co-ordinate descent with HALS updating
 
     // References:
-    // [1]    
+    // [1] Cichocki, A. and Phan, A. Fast Local Algorithms for Large Scale Nonnegative
+    //     Matrix and Tensor Factorizations. IEICE Transactions. 92-A. pp. 708-721, 2009.
+    // [2] Hsieh, C, and Dhillon, I. Fast coordinate descent methods with variable 
+    //     selection for non-negative matrix factorization. 1064-1072. 2011.
 
     // Update W
     W = HALS(A, H, W)
@@ -462,27 +468,29 @@ real matrix HALS(real matrix A,
                  real matrix H, 
                  real matrix W)
 {
-
-    // Reference
+    // Declare all variable types
+    real scalar m, n, l, k, mult, sq
+    real colvector col, colW, H_TA, col_up
+    
     m = rows(W)
     n = cols(W)
     
     for (l = 1; l <= n; l++) {
-        _C = J(m, 1, 0)
+        col = J(m, 1, 0)
         for (k = 1; k <= n; k++) {
             if (k != l) {
-                _A = H[k, .] * (H[l, .])'
-                _B = W[., k]
-                _C = _C + _B * _A
+                mult = H[k, .] * (H[l, .])'
+                colW = W[., k]
+                col = col + colW * mult
             }
         }
-        _D = A * H[l, .]'
-        _E = (sqrt(sum(H[l, .] :^ 2))) ^ 2
-        _F = (_D - _C) / _E
+        H_TA = A * H[l, .]'
+        sq = (sqrt(sum(H[l, .] :^ 2))) ^ 2
+        col_up = (H_TA - col) / sq
 
-        _F[., 1] = (_F[., 1] :>= 0 ) :* _F[., 1]    
+        col_up[., 1] = (col_up[., 1] :>= 0 ) :* col_up[., 1]    
 
-        W[., l] = _F[., 1]
+        W[., l] = col_up[., 1]
     }
     return(W)
 }
