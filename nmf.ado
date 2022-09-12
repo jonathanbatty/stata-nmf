@@ -31,6 +31,7 @@ program define nmf, rclass
     //          0 - Itakura-Saito divergence 
     //          1 - Generalized Kullback-Leibler divergence
     //          2 [*default] - Frobenius (Euclidean) norm
+    //          3 - Mean Squared Error (MSE) 
     //
     //      stop(): early stopping options, specified using the stop() parameter, include:
     //          0 - early stopping off; NMF continues for numer of iterations specified in iter
@@ -46,7 +47,6 @@ program define nmf, rclass
     //
 
     // To do: 
-    // Implement 'trace' parameter (default = 1) that specifies how often to calculate error
     // Implement for missing data / imputation
     // Graph requires frames! Make sure this is fixed
     // ? Optimise for large matrices and generally: use pointers to prevent repeatedly copying data
@@ -100,8 +100,8 @@ program define nmf, rclass
 
         // Add iteration identifier to norms frame
         frame norms {
-            gen iteration = _n
-            order iteration
+            rename norms1 iteration
+            rename norms2 loss
         }
     }
 
@@ -113,17 +113,19 @@ program define nmf, rclass
         if `beta' == 0 local betaString "Itakura-Saito Divergence" 
         if `beta' == 1 local betaString "Generalized Kullback-Leibler Divergence"
         if `beta' == 2 local betaString "Frobenius (Euclidean) Normalization"
+        if `beta' == 3 local betaString "Mean Squared Error (MSE)"
 
         local plotIterations = colsof(norms)
 
-        frame norms: graph twoway line norm iteration, ///
-        title("Loss Function") ///
-        xtitle("Iteration") xlabel(, labsize(*0.75) grid glcolor(gs15)) ///
-        ytitle("`betaString'") yscale(range(0 .)) ylabel(#5, ang(h) labsize(*0.75) grid glcolor(gs15)) ///
-        graphregion(color(white))
+        frame norms: graph twoway line loss iteration if iteration > 0,                                                                                 ///
+                                                      title("Loss Function")                                                                            ///
+                                                      xtitle("Iteration") xlabel(, labsize(*0.75) grid glcolor(gs15))                                   ///
+                                                      ytitle("`betaString'") yscale(range(0 .)) ylabel(#5, ang(h) labsize(*0.75) grid glcolor(gs15))    ///
+                                                      graphregion(color(white))
     }
 
     display "Returning final matrices in r(W), r(H) and r(norms)"
+
     // Return final results
     return matrix W W
     return matrix H H
@@ -159,7 +161,7 @@ void nmf(string scalar varlist,
 
     // 2. Ensure that there are no missing values in the input matrix
     if (hasmissing(A) == 1) {
-        _error("The input matrix must not contain missing values.")
+        _error("The input matrix contains missing values.")
     }
 
     // 3. Ensure that specified rank, k,  is valid (i.e. 2 < k < rank(A))
@@ -185,8 +187,13 @@ void nmf(string scalar varlist,
         printf("Error - an invalid initialisation type has been set.")
     }
   
+    // Calculate error of initialised matrices
+    normResult = betaDivergence(A, W, H, beta)
+
     // Create a column matrix (rows = iterations, columns = 1) to store normalisation results from each iteration
-    norms = J(1, 1, .)
+    norms = J(1, 2, .)
+    norms[1, 1] = 0
+    norms[1, 2] = normResult
 
     // Updating matrices the given number of iterations
     printf("Factorizing matix...\n\n")
@@ -205,13 +212,10 @@ void nmf(string scalar varlist,
         normResult = betaDivergence(A, W, H, beta)
 
         // Update norms matrix with result of current iteration
-        if (i == 1) {
-            norms[1, 1] = normResult
-        }
-        else {
-            norm = J(1, 1, normResult)
-            norms = norms \ norm
-        }
+        norm = J(1, 2, .)
+        norm[1, 1] = i
+        norm[1, 2] = normResult
+        norms = norms \ norm
 
         // Print result of iteration to the screen
         if (beta == 0) {
@@ -223,6 +227,9 @@ void nmf(string scalar varlist,
         else if (beta == 2) {
             betaMethodString = "Frobenius (Euclidean) Norm"
         }
+        else if (beta == 3) {
+            betaMethodString = "Mean Squared Error (MSE)"
+        }
 
         if (i == 1 | mod(i, 10) == 0 | i == iter) {
             printf("Iteration " + strofreal(i) + " of " + strofreal(iter) + ":\t\tLoss - " + betaMethodString + ":  %9.2f\n", normResult)
@@ -233,8 +240,8 @@ void nmf(string scalar varlist,
         if (stop != 0 & mod(i, 10) == 0){
             
             // if ((previous error - current error) / error at initiation) < stop tolerance) then stop
-            stopMeasure = (norms[i - 1, 1] - norms[i, 1]) / norms[1, 1]
-    
+            stopMeasure = (norms[i - 1, 2] - norms[i, 2]) / norms[2, 2]
+
             if (stopMeasure < stop)
             {
                 printf("\nStopping at iteration " + strofreal(i) + "...\n")
@@ -327,12 +334,11 @@ void nnsvdInit(real matrix A,
         H[i, .] = sqrt(S[1, i] * sigma) * _vi'
     }
 
-
     // Replaces zero values in initialised matrices with average value of input matrix, A
     if (initial == "nndsvda") {
         
         // Calculate properties of input matrix
-        averageOfInputMatrix = length(A) / sum(A)
+        averageOfInputMatrix = matrixMean(A)
 
         // Update zeros with average values of input matrix
         W = editvalue(W, 0, averageOfInputMatrix)
@@ -343,7 +349,7 @@ void nnsvdInit(real matrix A,
     else if (initial == "nndsvdar") {
 
         // Calculate properties of input matrix
-        averageOfInputMatrix = length(A) / sum(A)
+        averageOfInputMatrix = matrixMean(A)
 
         // Update zeroes in W with averge vales, scaled
         W = editvalue(W, 0, averageOfInputMatrix * runiform(1, 1) / 100)
@@ -363,10 +369,8 @@ scalar betaDivergence(real matrix A,
                       real scalar beta)
 {
     // Declare all variable types
-    real matrix div, delta
-    real rowvector A_data, WH_data
-    real colvector log_div
-    real scalar divergence, sum_WH, res
+    real matrix div
+    real scalar divergence
 
     // Logic flow based on parameter passed to nmf()
     if (beta == 0) {
@@ -376,38 +380,30 @@ scalar betaDivergence(real matrix A,
     }
     else if (beta == 1) {
         // 1 = Generalized Kullback-Leibler divergence
-        
-        // Unravel A and WH to single row vectors
-        A_data = rowshape(A, 1)
-        WH_data = rowshape(W*H, 1)
+        divergence = sum(A :* log(A :/ ((W*H)) :+ epsilon(1)) :- A :+ (W*H))
 
-        // Replace values of WH that are 0 to a very small value to prevent div by 0 errors
-        A_data = (A_data :>= epsilon(1)) :* A_data
-        WH_data = (A_data :>= epsilon(1)) :* WH_data
+        // Alternatively:
+        // No missing values
+        //                                       FIXED PART                                                                                UPDATING PART
+        //divergence = matrixMean(matrixModulus(A :+ epsilon(1), log(A :+ epsilon(1))) :- A)      +      matrixMean(-1 * matrixModulus((A :+ epsilon(1)), (log((W*H) :+ epsilon(1)))) :+ (W*H))
 
-        WH_data = editvalue(WH_data, 0, epsilon(1))
-        
-        sum_WH = sum(W*H)
-        div = A_data :/ WH_data
-        div = editvalue(div, 0, 1)
-        
-        // Reshape div to allow matrix multiplication
-        log_div = colshape(log(div), 1)
+        // Missing values
+        // Same, with mean of nonmising values
 
-        res = A_data * log_div
 
-        divergence = res + sum_WH - sum(A_data)
 
     }
     else if (beta == 2) {
         // 2 = Frobenius (or Euclidean) norm
-        delta = A - W*H
-        divergence = sqrt(sum(delta :^ 2))
+        divergence = sqrt(sum((A - W*H) :^ 2))
+    }
+    else if(beta == 3) {
+        // 3 = mean squared error
+        divergence = matrixMean((A - W*H) :^2)
     }
     else {
         _error("Invalid value for beta supplied.")
     }
-
     return(divergence)
 }
 
@@ -427,21 +423,16 @@ void mu(real matrix A,
     real matrix W_TA, W_TWH, AH_T, WHH_T
     real scalar e
 
-    // Declare value of e
-    e = 1.0e-10
-
     // Update H
     W_TA = W' * A
-    W_TWH = W' * W * H + J(rows(H), cols(H), e)
+    W_TWH = W' * W * H
     H = H :* W_TA :/ W_TWH
 
     // Update W
     AH_T = A * H'
-    WHH_T = W * H * H' + J(rows(W), cols(W), e)
+    WHH_T = W * H * H'
     W = W :* AH_T :/ WHH_T
-
 }
-
 
 
 void cd(real matrix A, 
@@ -493,6 +484,18 @@ real matrix HALS(real matrix A,
         W[., l] = col_up[., 1]
     }
     return(W)
+}
+
+real scalar matrixMean(real matrix A)
+{
+
+    return(sum(A) / length(A))
+}
+
+real matrix matrixModulus(real matrix A,
+                          real matrix B)
+{
+    return(A :- (A :/ B) :* B)
 }
 
 end

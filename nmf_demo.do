@@ -1,7 +1,7 @@
 clear all
 set seed 12345
 
-import delimited "C:\Users\jonat\OneDrive\Desktop\NMF\img.csv"
+import delimited "img.csv"
 
 timer clear
 qui {
@@ -14,7 +14,7 @@ qui {
 			initial(nndsvd) 	///
 			stop(1.0e-4) 		///
 			method(cd) 			///
-			beta(2) 			///
+			beta(1) 			///
 			nograph 			///
 			noframes
 		timer off 1
@@ -49,7 +49,8 @@ set matastrict off
 // Run single test
 clear all
 set seed 12345
-import delimited "C:\Users\jonat\OneDrive\Desktop\NMF\img.csv"
+import delimited "img.csv"
+
 
 nmf v*, 				///
 	k(20) 				///
@@ -57,8 +58,8 @@ nmf v*, 				///
 	initial(nndsvd) 	///
 	stop(1.0e-4) 		///
 	method(cd) 			///
-	beta(2) 			///
-	nograph noframes	
+	beta(0) 			///
+	//nograph noframes	
 
 	
 matrix W = r(W)
@@ -96,10 +97,11 @@ matrix list norms
 
 clear all
 mata:
-A = (-1, 2, -3 \ 4, 0, 6 \ 7, 8, 9)
-(A :>= 0) :* A
-A= (A :>= 0) :* A
+A = (., 2, 3 \ 4, 0, 6 \ ., 8, 9)
 A
+meanA = sum(A) / length(A)
+meanA
+
 end
 
 
