@@ -58,8 +58,8 @@ nmf v*, 				///
 	initial(nndsvd) 	///
 	stop(1.0e-4) 		///
 	method(cd) 			///
-	beta(0) 			///
-	//nograph noframes	
+	beta(2) 			///
+	nograph noframes	
 
 	
 matrix W = r(W)

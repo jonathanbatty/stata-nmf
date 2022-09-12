@@ -47,6 +47,7 @@ program define nmf, rclass
     //
 
     // To do: 
+    // Switch runiform for rnormal? See blog
     // Implement for missing data / imputation
     // Graph requires frames! Make sure this is fixed
     // ? Optimise for large matrices and generally: use pointers to prevent repeatedly copying data
@@ -218,18 +219,10 @@ void nmf(string scalar varlist,
         norms = norms \ norm
 
         // Print result of iteration to the screen
-        if (beta == 0) {
-            betaMethodString = "Itakura-Saito Divergence"
-        }
-        else if (beta == 1) {
-            betaMethodString =  "Generalized Kullback-Leibler Divergence"
-        }
-        else if (beta == 2) {
-            betaMethodString = "Frobenius (Euclidean) Norm"
-        }
-        else if (beta == 3) {
-            betaMethodString = "Mean Squared Error (MSE)"
-        }
+        if (beta == 0) betaMethodString = "Itakura-Saito Divergence"
+        if (beta == 1) betaMethodString = "Generalized Kullback-Leibler Divergence"
+        if (beta == 2) betaMethodString = "Frobenius (Euclidean) Norm"
+        if (beta == 3) betaMethodString = "Mean Squared Error (MSE)"
 
         if (i == 1 | mod(i, 10) == 0 | i == iter) {
             printf("Iteration " + strofreal(i) + " of " + strofreal(iter) + ":\t\tLoss - " + betaMethodString + ":  %9.2f\n", normResult)
@@ -388,7 +381,7 @@ scalar betaDivergence(real matrix A,
         //divergence = matrixMean(matrixModulus(A :+ epsilon(1), log(A :+ epsilon(1))) :- A)      +      matrixMean(-1 * matrixModulus((A :+ epsilon(1)), (log((W*H) :+ epsilon(1)))) :+ (W*H))
 
         // Missing values
-        // Same, with mean of nonmising values
+        // Same, with mean calculated based on values present:  sum(A) / (length(A) - missing(A))
 
 
 
