@@ -3,7 +3,7 @@ capture program drop nmf
 program define nmf, rclass
     version 17
  
-    syntax varlist(numeric), k(integer) iter(integer) [initial(string) method(string) beta(numlist integer max = 1) stop(numlist max = 1) nograph noframes]
+    syntax varlist(numeric), k(integer) iter(integer) [initial(string) method(string) loss(numlist integer max = 1) stop(numlist max = 1) nograph noframes]
     
     // Written by Dr Jonathan Batty (J.Batty@leeds.ac.uk)
     // at the Leeds Institute for Data Analytics (LIDA),
@@ -11,11 +11,13 @@ program define nmf, rclass
     //
     // Aim:
     // The aim of NMF is to find W (u x k) and H (k x v) such that A ~ WH, where all 3 matrices contain only non-negative values
-    // A good appoximation may be achieved with k << rank(A)
+    // A good appoximation may be achieved with k << rank(A) NMF is a NP-hard problem; the best that can be done is to find local
+    // minima from a set of initialisations.
     //
     // <Inputs>:
     //      initial(): initialisation options, specified using the init() parameter, include:
-    //          random [*default] - random initialisation of matrix in range [0, 1] 
+    //          randomu [*default] - random, uniform initialisation of matrix in range [1, 2] 
+    //          randomn - random, normally-distributed initialisation of matrix with mean 2 and standard deviation 1
     //          nndsvd - Nonnegative Double Singular Value Decomposition [Boutsidis2007] - suited to sparse factors
     //          nndsvda - NNSVD with zero elements replaced with the input matrix average (not recommended for sparse data)
     //          nndsvdar - NNSVD with zero elements replaced with a random value (nor recommended for sparse data)
@@ -26,8 +28,7 @@ program define nmf, rclass
     //          cd [*default] - two-block co-ordinate descent, using the fast hierarchical alternate least squares method (fast-HALS) of Cichocki and Phan (2009)
     //          mu - multiplicative updating of W and H, using the method of Lee and Seung (1999)
     //          
-    //
-    //      beta(): beta divergence options, specified using the beta() parameter, include:
+    //      loss(): divergence function options, specified using the loss() parameter, include:
     //          0 - Itakura-Saito divergence 
     //          1 - Generalized Kullback-Leibler divergence
     //          2 [*default] - Frobenius (Euclidean) norm
@@ -37,7 +38,7 @@ program define nmf, rclass
     //          0 - early stopping off; NMF continues for numer of iterations specified in iter
     //          float value, e.g. 1.0e-4 [*default] - if ((previous error - current error) / error at initiation) < stop tolerance) then further iterations are not performed
     //
-    //      nograph suppresses production of the graph of beta divergence at each iteration
+    //      nograph suppresses production of the graph of loss divergence at each iteration
     //
     //      noframes does not save frames containing output matrices: W, H and norms 
     //
@@ -46,29 +47,20 @@ program define nmf, rclass
     //      H - 
     //
 
-    // To do: 
-    // Switch runiform for rnormal? See blog
-    // Implement for missing data / imputation
-    // Graph requires frames! Make sure this is fixed
-    // ? Optimise for large matrices and generally: use pointers to prevent repeatedly copying data
-    // Consider implementing cross() for matrix multiplication, operations.
-    // Test, benchmark and optimise
-    // 
-    
     // If a value for initialisation method is not passed, default option is is random initialisation 
-    if "`initial'" == "" local initial "random"
+    if "`initial'" == "" local initial "randomu"
 
     // If a value for updating method is not passed, default option is is multiplicative updating (mu) 
     if "`method'" == "" local method "cd"
 
-    // If a value specifying the form of beta divergence normalisation is not passed, default option is is Frobenius normalisation (2) 
-    if "`beta'" == "" local beta = 2
+    // If a value specifying the form of loss divergence normalisation is not passed, default option is is Frobenius normalisation (2) 
+    if "`loss'" == "" local loss = 2
 
     // If a value specifying the stopping condition is not passed, default option is is 1.0e-4 (i.e. 0.01%)
     if "`stop'" == "" local stop = 1.0e-4
 
     // Run NMF
-    mata: nmf("`varlist'", `k', `iter', "`initial'", "`method'", `beta', `stop')
+    mata: nmf("`varlist'", `k', `iter', "`initial'", "`method'", `loss', `stop')
 
     // Store using stata matrices
     matrix W = r(W)
@@ -111,17 +103,17 @@ program define nmf, rclass
 
         display "Plotting graph of loss function..."
 
-        if `beta' == 0 local betaString "Itakura-Saito Divergence" 
-        if `beta' == 1 local betaString "Generalized Kullback-Leibler Divergence"
-        if `beta' == 2 local betaString "Frobenius (Euclidean) Normalization"
-        if `beta' == 3 local betaString "Mean Squared Error (MSE)"
+        if `loss' == 0 local lossString "Itakura-Saito Divergence" 
+        if `loss' == 1 local lossString "Generalized Kullback-Leibler Divergence"
+        if `loss' == 2 local lossString "Frobenius (Euclidean) Normalization"
+        if `loss' == 3 local lossString "Mean Squared Error (MSE)"
 
         local plotIterations = colsof(norms)
 
         frame norms: graph twoway line loss iteration if iteration > 0,                                                                                 ///
                                                       title("Loss Function")                                                                            ///
                                                       xtitle("Iteration") xlabel(, labsize(*0.75) grid glcolor(gs15))                                   ///
-                                                      ytitle("`betaString'") yscale(range(0 .)) ylabel(#5, ang(h) labsize(*0.75) grid glcolor(gs15))    ///
+                                                      ytitle("`lossString'") yscale(range(0 .)) ylabel(#5, ang(h) labsize(*0.75) grid glcolor(gs15))    ///
                                                       graphregion(color(white))
     }
 
@@ -142,14 +134,14 @@ void nmf(string scalar varlist,
          real scalar iter, 
          string scalar initial,
          string scalar method,
-         real scalar beta,
+         real scalar loss,
          real scalar stop)
 {
     // Declare all variable types
     real matrix A, W, H
     real colvector norm, norms
     real scalar e, i, normResult, stopMeasure
-    string scalar betaMethodString
+    string scalar lossMethodString
 
     // Construct mata matrix from input varlist
     A = st_data(., varlist)
@@ -162,7 +154,7 @@ void nmf(string scalar varlist,
 
     // 2. Ensure that there are no missing values in the input matrix
     if (hasmissing(A) == 1) {
-        _error("The input matrix contains missing values.")
+        _error("The input matrix must not contain missing values.")
     }
 
     // 3. Ensure that specified rank, k,  is valid (i.e. 2 < k < rank(A))
@@ -178,8 +170,8 @@ void nmf(string scalar varlist,
     }
 
     // Initialisation of matrix
-    if (initial == "random") {
-        randomInit(A, k, W, H)
+    if (initial == "randomu" | initial == "randomn") {
+        randomInit(A, k, W, H, initial)
     }
     else if (initial == "nndsvd" | initial == "nndsvda" | initial == "nndsvdar") {
         nnsvdInit(A, k, W, H, initial)
@@ -189,7 +181,7 @@ void nmf(string scalar varlist,
     }
   
     // Calculate error of initialised matrices
-    normResult = betaDivergence(A, W, H, beta)
+    normResult = lossDivergence(A, W, H, loss)
 
     // Create a column matrix (rows = iterations, columns = 1) to store normalisation results from each iteration
     norms = J(1, 2, .)
@@ -210,7 +202,7 @@ void nmf(string scalar varlist,
 
         // Calculate divergence (error) metric
         // This could be done every 5, 10 etc iterations ('trace' parameter)?
-        normResult = betaDivergence(A, W, H, beta)
+        normResult = lossDivergence(A, W, H, loss)
 
         // Update norms matrix with result of current iteration
         norm = J(1, 2, .)
@@ -219,13 +211,13 @@ void nmf(string scalar varlist,
         norms = norms \ norm
 
         // Print result of iteration to the screen
-        if (beta == 0) betaMethodString = "Itakura-Saito Divergence"
-        if (beta == 1) betaMethodString = "Generalized Kullback-Leibler Divergence"
-        if (beta == 2) betaMethodString = "Frobenius (Euclidean) Norm"
-        if (beta == 3) betaMethodString = "Mean Squared Error (MSE)"
+        if (loss == 0) lossMethodString = "Itakura-Saito Divergence"
+        if (loss == 1) lossMethodString = "Generalized Kullback-Leibler Divergence"
+        if (loss == 2) lossMethodString = "Frobenius (Euclidean) Norm"
+        if (loss == 3) lossMethodString = "Mean Squared Error (MSE)"
 
         if (i == 1 | mod(i, 10) == 0 | i == iter) {
-            printf("Iteration " + strofreal(i) + " of " + strofreal(iter) + ":\t\tLoss - " + betaMethodString + ":  %9.2f\n", normResult)
+            printf("Iteration " + strofreal(i) + " of " + strofreal(iter) + ":\t\tLoss - " + lossMethodString + ":  %9.2f\n", normResult)
         }
         
         // Implement stopping rule if one is set (i.e. stop > 0)
@@ -254,14 +246,24 @@ void nmf(string scalar varlist,
 void randomInit(real matrix A, 
                 real scalar k, 
                 real matrix W, 
-                real matrix H)
+                real matrix H,
+                string scalar initial)
 {
-    
-    // Generate random values for W in the range [1 - 2]
-    W = runiform(rows(A), k, 1, 2)
+    if (initial == "randomu") {
+        // Generate random values for W in the range [1 - 2]
+        W = runiform(rows(A), k, 1, 2)
 
-    // Generate random values for W in the range [1 - 2]
-    H = runiform(k, cols(A), 1, 2)
+        // Generate random values for W in the range [1 - 2]
+        H = runiform(k, cols(A), 1, 2)
+    } 
+    else if (initial == "randomn") {
+        // Generate random values for W in the range [1 - 2]
+        W = rnormal(rows(A), k, 2, 1)
+
+        // Generate random values for W in the range [1 - 2]
+        H = rnormal(k, cols(A), 2, 1)
+    }
+    
 }
 
 void nnsvdInit(real matrix A, 
@@ -356,46 +358,35 @@ void nnsvdInit(real matrix A,
     }
 }
 
-scalar betaDivergence(real matrix A,
+scalar lossDivergence(real matrix A,
                       real matrix W,
                       real matrix H,
-                      real scalar beta)
+                      real scalar loss)
 {
     // Declare all variable types
     real matrix div
     real scalar divergence
 
     // Logic flow based on parameter passed to nmf()
-    if (beta == 0) {
+    if (loss == 0) {
         // 0 = Itakura-Saito divergence (only if no zero/missing values)
         div = A :/ (W*H)
         divergence = sum(div) - (rows(A) * cols(A)) - sum(log(div))
     }
-    else if (beta == 1) {
+    else if (loss == 1) {
         // 1 = Generalized Kullback-Leibler divergence
         divergence = sum(A :* log(A :/ ((W*H)) :+ epsilon(1)) :- A :+ (W*H))
-
-        // Alternatively:
-        // No missing values
-        //                                       FIXED PART                                                                                UPDATING PART
-        //divergence = matrixMean(matrixModulus(A :+ epsilon(1), log(A :+ epsilon(1))) :- A)      +      matrixMean(-1 * matrixModulus((A :+ epsilon(1)), (log((W*H) :+ epsilon(1)))) :+ (W*H))
-
-        // Missing values
-        // Same, with mean calculated based on values present:  sum(A) / (length(A) - missing(A))
-
-
-
     }
-    else if (beta == 2) {
+    else if (loss == 2) {
         // 2 = Frobenius (or Euclidean) norm
         divergence = sqrt(sum((A - W*H) :^ 2))
     }
-    else if(beta == 3) {
+    else if(loss == 3) {
         // 3 = mean squared error
         divergence = matrixMean((A - W*H) :^2)
     }
     else {
-        _error("Invalid value for beta supplied.")
+        _error("Invalid value for loss function supplied.")
     }
     return(divergence)
 }

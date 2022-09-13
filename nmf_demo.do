@@ -51,15 +51,14 @@ clear all
 set seed 12345
 import delimited "img.csv"
 
-
 nmf v*, 				///
 	k(20) 				///
 	iter(500) 			///
-	initial(nndsvd) 	///
+	initial(randomu) 	///
 	stop(1.0e-4) 		///
 	method(cd) 			///
-	beta(2) 			///
-	nograph noframes	
+	loss(3) 			///
+	//nograph noframes	
 
 	
 matrix W = r(W)
