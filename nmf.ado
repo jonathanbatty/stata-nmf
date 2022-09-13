@@ -404,9 +404,6 @@ void mu_eu(real matrix A,
            real matrix W, 
            real matrix H)
 {
-
-    // This is actually MU by MSE approach!
-
     // References: 
     // [1]    Lee, D. and Seung, H. Algorithms for Non-negative Matrix Factorization.
     //        Advances in Neural Information Processing Systems 13: Proceedings of the 2000 Conference,
@@ -414,64 +411,34 @@ void mu_eu(real matrix A,
     // [2]    Lee, D. and Seung, H. Learning the parts of objects by non-negative matrix factorization. 
     //        Nature 401, pp. 788–791 (1999).
 
-    // Declare all variable types
-    real matrix W_TA, W_TWH, AH_T, WHH_T
-
     // Update H
-    W_TA = W' * A
-    W_TWH = W' * W * H
-    H = H :* W_TA :/ W_TWH
+    H = H :* ((W' * A) :/ (W' * W * H))
 
     // Update W
-    AH_T = A * H'
-    WHH_T = W * H * H'
-    W = W :* AH_T :/ WHH_T
+    W = W :* ((A * H') :/ (W * H * H'))
 }
 
 void mu_kl(real matrix A,
            real matrix W, 
            real matrix H)
 {
-    // Declare all variable types
-    real matrix A_WH, W_TA_WH, W_TOne, A_WH_H_T, OneH_T
-
     // Update H
-    A_WH = A :/ (W*H)
-    W_TA_WH = W' * A_WH
-    W_TOne = W' * J(cols(W'), cols(W'), 1)
-    H = H :* (W_TA_WH :/ W_TOne)
+    H = H :* ((W' * (A :/ (W*H))) :/ (W' * J(cols(W'), cols(W'), 1)))
 
     // Update W
-    A_WH = A :/ (W*H)
-    A_WH_H_T = A_WH * H'
-    OneH_T = J(rows(H'), rows(H') , 1) * H'
-    W = W :* (A_WH_H_T :/ OneH_T)
+    W = W :* (((A :/ (W*H)) * H') :/ (J(rows(H'), rows(H') , 1) * H'))
 }
 
 void mu_is(real matrix A,
            real matrix W, 
            real matrix H)
 {
-    // Declare all variable types
-    real matrix A_WHsq, W_TA_WHsq, recipWH, W_TrecipWH
-
     // Update H
-    WH = W * H
-    A_WHsq = A :/ (((WH) :^ 2) :+ epsilon(1))
-    W_TA_WHsq = W' * A_WHsq
-    recipWH = J(rows(WH), cols(WH), 1) :/ (WH :+ epsilon(1))
-    W_TrecipWH = W' * recipWH
-    H = H :* (W_TA_WHsq :/ W_TrecipWH)
+    H = H :* ((W' * (A :/ (((W * H) :^ 2) :+ epsilon(1)))) :/ (W' * ((W * H :+ epsilon(1)) :^ -1)))
     
     // Update W
-    WH = W * H
-    A_WHsq = A :/ (((WH) :^ 2) :+ epsilon(1))
-    A_WHsqH_T = A_WHsq * H'
-    recipWH = J(rows(WH), cols(WH), 1) :/ (WH :+ epsilon(1))
-    recipWHH_T =  recipWH * H'
-    W = W :* (A_WHsqH_T :/ recipWHH_T)
+    W = W :* (((A :/ (((W * H) :^ 2) :+ epsilon(1))) * H') :/ (((W * H :+ epsilon(1)) :^ -1) * H'))
 }
-
 
 void cd(real matrix A, 
         real matrix W, 

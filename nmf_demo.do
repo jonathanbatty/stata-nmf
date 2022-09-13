@@ -9,14 +9,13 @@ qui {
 	forvalues i = 1/100 {
 		timer on 1
 		nmf v*, 				///
-		    k(20) 				///
+			k(20) 				///
 			iter(500) 			///
-			initial(nndsvd) 	///
+			initial(randomu) 	///
 			stop(1.0e-4) 		///
-			method(cd) 			///
-			beta(1) 			///
-			nograph 			///
-			noframes
+			method(mu) 			///
+			loss(is) 			///
+			nograph noframes	
 		timer off 1
 		nois _dots `i' 0
 	}
@@ -57,7 +56,7 @@ nmf v*, 				///
 	initial(randomu) 	///
 	stop(1.0e-4) 		///
 	method(mu) 			///
-	loss(kl) 			///
+	loss(is) 			///
 	//nograph noframes	
 
 	
@@ -98,10 +97,10 @@ matrix list W
 clear all
 mata:
 A = (., 2, 3 \ 4, 0, 6 \ ., 8, 9)
-length(A)
-A
-meanA = sum(A) / length(A)
-meanA
+
+
+
+
 
 end
 
