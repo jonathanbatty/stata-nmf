@@ -433,11 +433,15 @@ void mu_is(real matrix A,
            real matrix W, 
            real matrix H)
 {
+    real matrix WH
+
     // Update H
-    H = H :* ((W' * (A :/ (((W * H) :^ 2) :+ epsilon(1)))) :/ (W' * ((W * H :+ epsilon(1)) :^ -1)))
+    WH = W*H
+    H = H :* ((W' * (A :/ (((WH) :^ 2) :+ epsilon(1)))) :/ (W' * ((WH :+ epsilon(1)) :^ -1)))
     
     // Update W
-    W = W :* (((A :/ (((W * H) :^ 2) :+ epsilon(1))) * H') :/ (((W * H :+ epsilon(1)) :^ -1) * H'))
+    WH = W*H
+    W = W :* (((A :/ (((WH) :^ 2) :+ epsilon(1))) * H') :/ (((WH :+ epsilon(1)) :^ -1) * H'))
 }
 
 void cd(real matrix A, 

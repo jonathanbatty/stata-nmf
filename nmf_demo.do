@@ -50,14 +50,20 @@ clear all
 set seed 12345
 import delimited "img.csv"
 
+// replace v7 = . in 14
+// replace v15 = . in 22
+// replace v9 = . in 28
+// replace v2 = . in 19
+
 nmf v*, 				///
 	k(20) 				///
 	iter(500) 			///
 	initial(randomu) 	///
 	stop(1.0e-4) 		///
 	method(mu) 			///
-	loss(is) 			///
+	loss(eu) 			///
 	//nograph noframes	
+	
 
 	
 matrix W = r(W)
@@ -97,10 +103,16 @@ matrix list W
 clear all
 mata:
 A = (., 2, 3 \ 4, 0, 6 \ ., 8, 9)
+A
 
+mask = (A :!= .)
+maskedA = A :* mask
 
+mask
+maskedA
 
-
+A = editmissing(A, 0)
+A
 
 end
 
