@@ -472,14 +472,8 @@ real matrix HALS(real matrix A,
 
 real scalar matrixMean(real matrix A)
 {
-
+    // Returns mean of matrix (assumes no misisng values)
     return(sum(A) / length(A))
-}
-
-real matrix matrixModulus(real matrix A,
-                          real matrix B)
-{
-    return(A :- (A :/ B) :* B)
 }
 
 end

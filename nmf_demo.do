@@ -97,6 +97,7 @@ matrix list norms
 clear all
 mata:
 A = (., 2, 3 \ 4, 0, 6 \ ., 8, 9)
+length(A)
 A
 meanA = sum(A) / length(A)
 meanA
