@@ -50,10 +50,13 @@ clear all
 set seed 12345
 import delimited "img.csv"
 
-// replace v7 = . in 14
-// replace v15 = . in 22
-// replace v9 = . in 28
-// replace v2 = . in 19
+// Make a percentage of data missing (MCAR)
+// gen randsort = .
+// foreach var of varlist v* {
+// 	replace randsort = runiform()
+// 	sort randsort
+// 	replace `var' = . if runiform() < 0.05
+// }
 
 nmf v*, 				///
 	k(20) 				///
@@ -63,7 +66,7 @@ nmf v*, 				///
 	method(mu) 			///
 	loss(eu) 			///
 	//nograph noframes	
-	
+
 
 	
 matrix W = r(W)
@@ -111,7 +114,7 @@ maskedA = A :* mask
 mask
 maskedA
 
-A = editmissing(A, 0)
+_editmissing(A, 0)
 A
 
 end

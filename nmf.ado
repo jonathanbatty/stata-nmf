@@ -46,10 +46,7 @@ program define nmf, rclass
     //      H - 
     //
     //
-    // NEXT: LOOK AT https://uk.mathworks.com/help/stats/nnmf.html
-    // LOOK AT https://stackoverflow.com/questions/22767695/python-non-negative-matrix-factorization-that-handles-both-zeros-and-missing-dat
-    // This may help with nnls: https://blog.stata.com/2016/01/05/programming-an-estimation-command-in-stata-computing-ols-objects-in-mata/
-    // This too https://global.oup.com/booksites/content/0199268010/samplesec3
+    //  IMPLEMENT MU missing data for KL
 
     // If a value for initialisation method is not passed, default option is is random initialisation 
     if "`initial'" == "" local initial "randomu"
@@ -143,7 +140,7 @@ void nmf(string scalar varlist,
     // Declare all variable types
     real matrix A, W, H
     real colvector norm, norms
-    real scalar e, i, normResult, stopMeasure
+    real scalar e, i, normResult, stopMeasure, hasMissing
     string scalar lossMethodString
 
     // Construct mata matrix from input varlist
@@ -157,7 +154,11 @@ void nmf(string scalar varlist,
 
     // 2. Ensure that there are no missing values in the input matrix
     if (hasmissing(A) == 1) {
-        _error("The input matrix must not contain missing values.")
+        //_error("The input matrix must not contain missing values.")
+        hasMissing = 1
+    }
+    else {
+        hasMissing = 0
     }
 
     // 3. Ensure that specified rank, k,  is valid (i.e. 2 < k < rank(A))
@@ -184,7 +185,7 @@ void nmf(string scalar varlist,
     }
   
     // Calculate error of initialised matrices
-    normResult = lossDivergence(A, W, H, loss)
+    normResult = lossDivergence(A, W, H, loss, hasMissing)
 
     // Create a column matrix (rows = iterations, columns = 1) to store normalisation results from each iteration
     norms = J(1, 2, .)
@@ -199,7 +200,12 @@ void nmf(string scalar varlist,
         if (method == "mu") {
 
             if (loss == "eu") {
-                mu_eu(A, W, H)
+                if (hasMissing == 1) {
+                    mu_eu_missing(A, W, H)
+                }
+                else {
+                    mu_eu(A, W, H)
+                }
             }
 
             else if (loss == "kl") {
@@ -217,7 +223,7 @@ void nmf(string scalar varlist,
 
         // Calculate divergence (error) metric
         // This could be done every 5, 10 etc iterations ('trace' parameter)?
-        normResult = lossDivergence(A, W, H, loss)
+        normResult = lossDivergence(A, W, H, loss, hasMissing)
 
         // Update norms matrix with result of current iteration
         norm = J(1, 2, .)
@@ -374,29 +380,47 @@ void nnsvdInit(real matrix A,
 scalar lossDivergence(real matrix A,
                       real matrix W,
                       real matrix H,
-                      string scalar loss)
+                      string scalar loss,
+                      real scalar hasMissing)
 {
     // Declare all variable types
     real matrix div
     real scalar divergence
 
-    // Logic flow based on parameter passed to nmf()
-    if (loss == "is") {
-        // 0 = Itakura-Saito divergence (only if no zero/missing values)
-        div = A :/ (W*H)
-        divergence = sum(div) - (rows(A) * cols(A)) - sum(log(div))
+    if (hasMissing == 0){
+
+        // Logic flow based on parameter passed to nmf()
+        if (loss == "is") {
+            // is = Itakura-Saito divergence (only if no zero/missing values)
+            div = A :/ (W*H)
+            divergence = sum(div) - (rows(A) * cols(A)) - sum(log(div))
+        }
+        else if (loss == "kl") {
+            // kl = Generalized Kullback-Leibler divergence
+            divergence = sum(A :* log(A :/ ((W*H)) :+ epsilon(1)) :- A :+ (W*H))
+        }
+        else if (loss == "eu") {
+            // eu = Frobenius (or Euclidean) norm
+            divergence = sqrt(sum((A - W*H) :^ 2))
+        }
+        else {
+            _error("Invalid value of loss function supplied.")
+        }
     }
-    else if (loss == "kl") {
-        // 1 = Generalized Kullback-Leibler divergence
-        divergence = sum(A :* log(A :/ ((W*H)) :+ epsilon(1)) :- A :+ (W*H))
+    else if (hasMissing == 1) {
+        
+        if (loss == "eu") {
+            // eu = Frobenius (or Euclidean) norm
+            M = (A :!= .)
+            divergence = sqrt(sum(( M :* (A - W*H)) :^ 2))
+        }
+        else {
+            _error("This distance metric is not supported for missing data.")
+        }
+
     }
-    else if (loss == "eu") {
-        // 2 = Frobenius (or Euclidean) norm
-        divergence = sqrt(sum((A - W*H) :^ 2))
-    }
-    else {
-        _error("Invalid value for loss function supplied.")
-    }
+
+    
     return(divergence)
 }
 
@@ -417,6 +441,23 @@ void mu_eu(real matrix A,
     // Update W
     W = W :* ((A * H') :/ (W * H * H'))
 }
+
+void mu_eu_missing(real matrix A,
+                   real matrix W, 
+                   real matrix H)
+{
+    real matrix M
+    
+    M = (A :!= .)
+    _editmissing(A, 0)
+
+    // Update H
+    H = H :* ((W' * (M :* A)) :/ (W' * (M :* (W * H))))
+
+    // Update W
+    W = W :* (((M :* A) * H') :/ ((M :* (W * H)) * H'))
+}
+
 
 void mu_kl(real matrix A,
            real matrix W, 
