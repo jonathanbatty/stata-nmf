@@ -3,7 +3,7 @@ capture program drop nmf
 program define nmf, rclass
     version 17
  
-    syntax varlist(numeric), k(integer) iter(integer) [initial(string) method(string) loss(numlist integer max = 1) stop(numlist max = 1) nograph noframes]
+    syntax varlist(numeric), k(integer) iter(integer) [initial(string) method(string) loss(string) stop(numlist max = 1) nograph noframes]
     
     // Written by Dr Jonathan Batty (J.Batty@leeds.ac.uk)
     // at the Leeds Institute for Data Analytics (LIDA),
@@ -29,10 +29,9 @@ program define nmf, rclass
     //          mu - multiplicative updating of W and H, using the method of Lee and Seung (1999)
     //          
     //      loss(): divergence function options, specified using the loss() parameter, include:
-    //          0 - Itakura-Saito divergence 
-    //          1 - Generalized Kullback-Leibler divergence
-    //          2 [*default] - Frobenius (Euclidean) norm
-    //          3 - Mean Squared Error (MSE) 
+    //          eu [*default] - Frobenius (Euclidean) norm (equivalent to MSE for matrices)
+    //          is - Itakura-Saito divergence 
+    //          kl - Generalized Kullback-Leibler divergence
     //
     //      stop(): early stopping options, specified using the stop() parameter, include:
     //          0 - early stopping off; NMF continues for numer of iterations specified in iter
@@ -46,6 +45,11 @@ program define nmf, rclass
     //      W - 
     //      H - 
     //
+    //
+    // NEXT: LOOK AT https://uk.mathworks.com/help/stats/nnmf.html
+    // LOOK AT https://stackoverflow.com/questions/22767695/python-non-negative-matrix-factorization-that-handles-both-zeros-and-missing-dat
+    // This may help with nnls: https://blog.stata.com/2016/01/05/programming-an-estimation-command-in-stata-computing-ols-objects-in-mata/
+    // This too https://global.oup.com/booksites/content/0199268010/samplesec3
 
     // If a value for initialisation method is not passed, default option is is random initialisation 
     if "`initial'" == "" local initial "randomu"
@@ -54,13 +58,13 @@ program define nmf, rclass
     if "`method'" == "" local method "cd"
 
     // If a value specifying the form of loss divergence normalisation is not passed, default option is is Frobenius normalisation (2) 
-    if "`loss'" == "" local loss = 2
+    if "`loss'" == "" local loss = "eu"
 
     // If a value specifying the stopping condition is not passed, default option is is 1.0e-4 (i.e. 0.01%)
     if "`stop'" == "" local stop = 1.0e-4
 
     // Run NMF
-    mata: nmf("`varlist'", `k', `iter', "`initial'", "`method'", `loss', `stop')
+    mata: nmf("`varlist'", `k', `iter', "`initial'", "`method'", "`loss'", `stop')
 
     // Store using stata matrices
     matrix W = r(W)
@@ -103,10 +107,9 @@ program define nmf, rclass
 
         display "Plotting graph of loss function..."
 
-        if `loss' == 0 local lossString "Itakura-Saito Divergence" 
-        if `loss' == 1 local lossString "Generalized Kullback-Leibler Divergence"
-        if `loss' == 2 local lossString "Frobenius (Euclidean) Normalization"
-        if `loss' == 3 local lossString "Mean Squared Error (MSE)"
+        if "`loss'" == "is" local lossString "Itakura-Saito Divergence" 
+        if "`loss'" == "kl" local lossString "Generalized Kullback-Leibler Divergence"
+        if "`loss'" == "eu" local lossString "Frobenius (Euclidean) Error "
 
         local plotIterations = colsof(norms)
 
@@ -134,7 +137,7 @@ void nmf(string scalar varlist,
          real scalar iter, 
          string scalar initial,
          string scalar method,
-         real scalar loss,
+         string scalar loss,
          real scalar stop)
 {
     // Declare all variable types
@@ -194,7 +197,19 @@ void nmf(string scalar varlist,
     // Update W and H by chosen update method
     for (i = 1; i <= iter; i++) {
         if (method == "mu") {
-            mu(A, W, H)
+
+            if (loss == "eu") {
+                mu_eu(A, W, H)
+            }
+
+            else if (loss == "kl") {
+                mu_kl(A, W, H)
+            }
+
+            else if (loss == "is") {
+                mu_is(A, W, H)
+            }
+            
         }
         else if (method == "cd") {
             cd(A, W, H)
@@ -211,10 +226,9 @@ void nmf(string scalar varlist,
         norms = norms \ norm
 
         // Print result of iteration to the screen
-        if (loss == 0) lossMethodString = "Itakura-Saito Divergence"
-        if (loss == 1) lossMethodString = "Generalized Kullback-Leibler Divergence"
-        if (loss == 2) lossMethodString = "Frobenius (Euclidean) Norm"
-        if (loss == 3) lossMethodString = "Mean Squared Error (MSE)"
+        if (loss == "is") lossMethodString = "Itakura-Saito Divergence"
+        if (loss == "kl") lossMethodString = "Generalized Kullback-Leibler Divergence"
+        if (loss == "eu") lossMethodString = "Frobenius (Euclidean) Norm"
 
         if (i == 1 | mod(i, 10) == 0 | i == iter) {
             printf("Iteration " + strofreal(i) + " of " + strofreal(iter) + ":\t\tLoss - " + lossMethodString + ":  %9.2f\n", normResult)
@@ -263,7 +277,6 @@ void randomInit(real matrix A,
         // Generate random values for W in the range [1 - 2]
         H = rnormal(k, cols(A), 2, 1)
     }
-    
 }
 
 void nnsvdInit(real matrix A, 
@@ -361,29 +374,25 @@ void nnsvdInit(real matrix A,
 scalar lossDivergence(real matrix A,
                       real matrix W,
                       real matrix H,
-                      real scalar loss)
+                      string scalar loss)
 {
     // Declare all variable types
     real matrix div
     real scalar divergence
 
     // Logic flow based on parameter passed to nmf()
-    if (loss == 0) {
+    if (loss == "is") {
         // 0 = Itakura-Saito divergence (only if no zero/missing values)
         div = A :/ (W*H)
         divergence = sum(div) - (rows(A) * cols(A)) - sum(log(div))
     }
-    else if (loss == 1) {
+    else if (loss == "kl") {
         // 1 = Generalized Kullback-Leibler divergence
         divergence = sum(A :* log(A :/ ((W*H)) :+ epsilon(1)) :- A :+ (W*H))
     }
-    else if (loss == 2) {
+    else if (loss == "eu") {
         // 2 = Frobenius (or Euclidean) norm
         divergence = sqrt(sum((A - W*H) :^ 2))
-    }
-    else if(loss == 3) {
-        // 3 = mean squared error
-        divergence = matrixMean((A - W*H) :^2)
     }
     else {
         _error("Invalid value for loss function supplied.")
@@ -391,10 +400,12 @@ scalar lossDivergence(real matrix A,
     return(divergence)
 }
 
-void mu(real matrix A,
-        real matrix W, 
-        real matrix H)
+void mu_eu(real matrix A,
+           real matrix W, 
+           real matrix H)
 {
+
+    // This is actually MU by MSE approach!
 
     // References: 
     // [1]    Lee, D. and Seung, H. Algorithms for Non-negative Matrix Factorization.
@@ -405,7 +416,6 @@ void mu(real matrix A,
 
     // Declare all variable types
     real matrix W_TA, W_TWH, AH_T, WHH_T
-    real scalar e
 
     // Update H
     W_TA = W' * A
@@ -416,6 +426,50 @@ void mu(real matrix A,
     AH_T = A * H'
     WHH_T = W * H * H'
     W = W :* AH_T :/ WHH_T
+}
+
+void mu_kl(real matrix A,
+           real matrix W, 
+           real matrix H)
+{
+    // Declare all variable types
+    real matrix A_WH, W_TA_WH, W_TOne, A_WH_H_T, OneH_T
+
+    // Update H
+    A_WH = A :/ (W*H)
+    W_TA_WH = W' * A_WH
+    W_TOne = W' * J(cols(W'), cols(W'), 1)
+    H = H :* (W_TA_WH :/ W_TOne)
+
+    // Update W
+    A_WH = A :/ (W*H)
+    A_WH_H_T = A_WH * H'
+    OneH_T = J(rows(H'), rows(H') , 1) * H'
+    W = W :* (A_WH_H_T :/ OneH_T)
+}
+
+void mu_is(real matrix A,
+           real matrix W, 
+           real matrix H)
+{
+    // Declare all variable types
+    real matrix A_WHsq, W_TA_WHsq, recipWH, W_TrecipWH
+
+    // Update H
+    WH = W * H
+    A_WHsq = A :/ (((WH) :^ 2) :+ epsilon(1))
+    W_TA_WHsq = W' * A_WHsq
+    recipWH = J(rows(WH), cols(WH), 1) :/ (WH :+ epsilon(1))
+    W_TrecipWH = W' * recipWH
+    H = H :* (W_TA_WHsq :/ W_TrecipWH)
+    
+    // Update W
+    WH = W * H
+    A_WHsq = A :/ (((WH) :^ 2) :+ epsilon(1))
+    A_WHsqH_T = A_WHsq * H'
+    recipWH = J(rows(WH), cols(WH), 1) :/ (WH :+ epsilon(1))
+    recipWHH_T =  recipWH * H'
+    W = W :* (A_WHsqH_T :/ recipWHH_T)
 }
 
 

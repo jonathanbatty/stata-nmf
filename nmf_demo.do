@@ -56,8 +56,8 @@ nmf v*, 				///
 	iter(500) 			///
 	initial(randomu) 	///
 	stop(1.0e-4) 		///
-	method(cd) 			///
-	loss(3) 			///
+	method(mu) 			///
+	loss(kl) 			///
 	//nograph noframes	
 
 	
@@ -66,6 +66,7 @@ matrix H = r(H)
 matrix norms = r(norms)
 matrix list norms
 
+matrix list W
 
 
 
