@@ -52,7 +52,11 @@ set matastrict off
 // Run single test
 clear all
 set seed 12345
-import delimited "img.csv"
+
+//import delimited "sample_data/img.csv"
+
+import delimited "sample_data/nsclc.csv"
+rename v1 gene
 
 // Make a percentage of data missing (MCAR)
 
@@ -68,11 +72,11 @@ import delimited "img.csv"
 // drop origorder
 
 // Run NMF
-nmf v*, 				///
-	k(20) 				///
+nmf p*, 				///
+	k(15) 				///
 	iter(500) 			///
 	initial(randomu) 	///
-	stop(1.0e-4) 		///
+	stop(0) 			///
 	method(mu) 			///
 	loss(eu) 			///
 	//nograph noframes	
@@ -82,7 +86,6 @@ matrix H = r(H)
 matrix norms = r(norms)
 matrix list norms
 
-matrix list W
 
 
 

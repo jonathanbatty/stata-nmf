@@ -45,6 +45,7 @@ program define nmf, rclass
     //      W - 
     //      H - 
     //
+    //  Initialise matrices as in matlab or based on range of input parameters? Scale better
     //  Create HALS function that uses KL divergence
     //  Implement missing value version of HALS 
 
@@ -530,7 +531,7 @@ void cd(real matrix A,
     //     Matrix and Tensor Factorizations. IEICE Transactions. 92-A. pp. 708-721, 2009.
     // [2] Hsieh, C, and Dhillon, I. Fast coordinate descent methods with variable 
     //     selection for non-negative matrix factorization. 1064-1072. 2011.
-
+    
     // Update W
     W = HALS(A, H, W)
     
@@ -549,7 +550,7 @@ real matrix HALS(real matrix A,
     
     m = rows(W)
     n = cols(W)
-    
+
     for (l = 1; l <= n; l++) {
         col = J(m, 1, 0)
         for (k = 1; k <= n; k++) {
