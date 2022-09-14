@@ -53,10 +53,10 @@ set matastrict off
 clear all
 set seed 12345
 
-//import delimited "sample_data/img.csv"
+import delimited "sample_data/img.csv"
 
-import delimited "sample_data/nsclc.csv"
-rename v1 gene
+//import delimited "sample_data/nsclc.csv"
+//rename v1 gene
 
 // Make a percentage of data missing (MCAR)
 
@@ -72,14 +72,18 @@ rename v1 gene
 // drop origorder
 
 // Run NMF
-nmf p*, 				///
-	k(15) 				///
+nmf v*, 				///
+	k(110) 				///
 	iter(500) 			///
 	initial(randomu) 	///
-	stop(0) 			///
-	method(mu) 			///
+	stop(1.0e-4) 		///
+	method(cd) 			///
 	loss(eu) 			///
 	//nograph noframes	
+
+	
+	
+	
 
 matrix W = r(W)
 matrix H = r(H)

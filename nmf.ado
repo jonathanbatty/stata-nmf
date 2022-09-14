@@ -45,6 +45,12 @@ program define nmf, rclass
     //      W - 
     //      H - 
     //
+    //  Status and next steps:
+    //  MU working well
+    //  Debug coord descent function - does not work as intended
+    //  CD stops working for larger numbers of k - why? Test this with a smaller (e.g. 10 x 20 dataset to explore)
+    //  DEBUG WITH : https://github.com/umurotti/NMF/blob/main/Two_Block_Coordinate_Descent.m
+    //  
     //  Initialise matrices as in matlab or based on range of input parameters? Scale better
     //  Create HALS function that uses KL divergence
     //  Implement missing value version of HALS 
@@ -551,6 +557,7 @@ real matrix HALS(real matrix A,
     m = rows(W)
     n = cols(W)
 
+    // Loop over every column of W (equal to k, rank)
     for (l = 1; l <= n; l++) {
         col = J(m, 1, 0)
         for (k = 1; k <= n; k++) {
@@ -563,7 +570,6 @@ real matrix HALS(real matrix A,
         H_TA = A * H[l, .]'
         sq = (sqrt(sum(H[l, .] :^ 2))) ^ 2
         col_up = (H_TA - col) / sq
-
         col_up[., 1] = (col_up[., 1] :>= 0 ) :* col_up[., 1]    
 
         W[., l] = col_up[., 1]
