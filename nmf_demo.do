@@ -45,19 +45,29 @@ set matastrict off
 
 
 
+
+
+
+
 // Run single test
 clear all
 set seed 12345
 import delimited "img.csv"
 
-//Make a percentage of data missing (MCAR)
-gen randsort = .
-foreach var of varlist v* {
-	replace randsort = runiform()
-	sort randsort
-	replace `var' = . if runiform() < 0.05
-}
+// Make a percentage of data missing (MCAR)
 
+// gen origorder = _n
+// gen randsort = .
+// foreach var of varlist v* {
+// 	replace randsort = runiform()
+// 	sort randsort
+// 	replace `var' = . if runiform() < 0.05
+// }
+// sort origorder
+// drop randsort
+// drop origorder
+
+// Run NMF
 nmf v*, 				///
 	k(20) 				///
 	iter(500) 			///
@@ -65,10 +75,8 @@ nmf v*, 				///
 	stop(1.0e-4) 		///
 	method(mu) 			///
 	loss(eu) 			///
-	nograph noframes	
+	//nograph noframes	
 
-
-	
 matrix W = r(W)
 matrix H = r(H)
 matrix norms = r(norms)

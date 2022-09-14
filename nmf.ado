@@ -45,8 +45,8 @@ program define nmf, rclass
     //      W - 
     //      H - 
     //
-    //
-    //  IMPLEMENT MU missing data for KL
+    //  Create HALS function that uses KL divergence
+    //  Implement missing value version of HALS 
 
     // If a value for initialisation method is not passed, default option is is random initialisation 
     if "`initial'" == "" local initial "randomu"
@@ -207,13 +207,21 @@ void nmf(string scalar varlist,
                     mu_eu(A, W, H)
                 }
             }
-
             else if (loss == "kl") {
-                mu_kl(A, W, H)
+                if (hasMissing == 1) {
+                    mu_kl_missing(A, W, H)
+                }
+                else {
+                    mu_kl(A, W, H)
+                }
             }
-
             else if (loss == "is") {
-                mu_is(A, W, H)
+                if (hasMissing == 1) {
+                    _error("The chosen loss function is not supported when values are missing.")
+                }
+                else {
+                    mu_is(A, W, H)
+                }              
             }
             
         }
@@ -384,7 +392,7 @@ scalar lossDivergence(real matrix A,
                       real scalar hasMissing)
 {
     // Declare all variable types
-    real matrix div
+    real matrix div, M
     real scalar divergence
 
     if (hasMissing == 0){
@@ -407,9 +415,19 @@ scalar lossDivergence(real matrix A,
             _error("Invalid value of loss function supplied.")
         }
     }
+
     else if (hasMissing == 1) {
-        
-        if (loss == "eu") {
+        if (loss == "is") {
+            // is = Itakura-Saito divergence (only if no zero/missing values)
+            div = A :/ (W*H)
+            divergence = sum(div) - (rows(A) * cols(A)) - sum(log(div))
+        }
+        else if (loss == "kl") {
+            // kl = Generalized Kullback-Leibler divergence
+            M = (A :!= .)
+            divergence = sum((M :* A) :* log((M :*A) :/ (M :* (W*H)) :+ epsilon(1)) :- (M :* A) :+ (M :* (W*H)))
+        }
+        else if (loss == "eu") {
             // eu = Frobenius (or Euclidean) norm
             M = (A :!= .)
             divergence = sqrt(sum(( M :* (A - W*H)) :^ 2))
@@ -470,6 +488,22 @@ void mu_kl(real matrix A,
     W = W :* (((A :/ (W*H)) * H') :/ (J(rows(H'), rows(H') , 1) * H'))
 }
 
+void mu_kl_missing(real matrix A,
+                   real matrix W, 
+                   real matrix H)
+{
+    real matrix M
+    
+    M = (A :!= .)
+    _editmissing(A, 0)
+
+    // Update H
+    W = (W :/ (M * H')) :* (((M :* A) :/ (W * H)) * H')
+
+    // Update W
+    H = (H :/ (W' * M)) :* (W' * ((M :* A) :/ (W * H)))
+}
+
 void mu_is(real matrix A,
            real matrix W, 
            real matrix H)
@@ -478,11 +512,11 @@ void mu_is(real matrix A,
 
     // Update H
     WH = W*H
-    H = H :* ((W' * (A :/ (((WH) :^ 2) :+ epsilon(1)))) :/ (W' * ((WH :+ epsilon(1)) :^ -1)))
+    H = H :* ((W' * (A :/ ((WH :^ 2) :+ epsilon(1)))) :/ (W' * ((WH :+ epsilon(1)) :^ -1)))
     
     // Update W
     WH = W*H
-    W = W :* (((A :/ (((WH) :^ 2) :+ epsilon(1))) * H') :/ (((WH :+ epsilon(1)) :^ -1) * H'))
+    W = W :* (((A :/ ((WH :^ 2) :+ epsilon(1))) * H') :/ (((WH :+ epsilon(1)) :^ -1) * H'))
 }
 
 void cd(real matrix A, 
