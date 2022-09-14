@@ -47,8 +47,7 @@ program define nmf, rclass
     //
     //  Status and next steps:
     //  MU working well
-    //  Debug coord descent function - does not work as intended
-    //  CD stops working for larger numbers of k - why? Test this with a smaller (e.g. 10 x 20 dataset to explore)
+    //  
     //  DEBUG WITH : https://github.com/umurotti/NMF/blob/main/Two_Block_Coordinate_Descent.m
     //  
     //  Initialise matrices as in matlab or based on range of input parameters? Scale better
@@ -261,7 +260,6 @@ void nmf(string scalar varlist,
             
             // if ((previous error - current error) / error at initiation) < stop tolerance) then stop
             stopMeasure = (norms[i - 1, 2] - norms[i, 2]) / norms[2, 2]
-
             if (stopMeasure < stop)
             {
                 printf("\nStopping at iteration " + strofreal(i) + "...\n")
@@ -285,11 +283,12 @@ void randomInit(real matrix A,
                 string scalar initial)
 {
     if (initial == "randomu") {
-        // Generate random values for W in the range [1 - 2]
-        W = runiform(rows(A), k, 1, 2)
+        // Generate random values for W in the range [min(A), max(A)]
+        W = runiform(rows(A), k, min(A), max(A))
 
-        // Generate random values for W in the range [1 - 2]
-        H = runiform(k, cols(A), 1, 2)
+        // Generate random values for W in the range [min(A), max(A)]
+        H = runiform(k, cols(A), min(A), max(A))
+
     } 
     else if (initial == "randomn") {
         // Generate random values for W in the range [1 - 2]

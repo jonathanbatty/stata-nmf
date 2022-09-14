@@ -5,8 +5,8 @@ import delimited "img.csv"
 
 timer clear
 qui {
-	nois _dots 0, title(Timing NMF:) reps(100)
-	forvalues i = 1/100 {
+	nois _dots 0, title(Timing NMF:) reps(1000)
+	forvalues i = 1/1000 {
 		timer on 1
 		nmf v*, 				///
 			k(20) 				///
@@ -53,10 +53,10 @@ set matastrict off
 clear all
 set seed 12345
 
-import delimited "sample_data/img.csv"
+//import delimited "sample_data/img.csv"
 
-//import delimited "sample_data/nsclc.csv"
-//rename v1 gene
+import delimited "sample_data/nsclc.csv"
+rename v1 gene
 
 // Make a percentage of data missing (MCAR)
 
@@ -72,12 +72,12 @@ import delimited "sample_data/img.csv"
 // drop origorder
 
 // Run NMF
-nmf v*, 				///
-	k(110) 				///
-	iter(500) 			///
+nmf p*, 				///
+	k(15) 				///
+	iter(2000) 			///
 	initial(randomu) 	///
 	stop(1.0e-4) 		///
-	method(cd) 			///
+	method(mu) 			///
 	loss(eu) 			///
 	//nograph noframes	
 
