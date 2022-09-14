@@ -50,13 +50,13 @@ clear all
 set seed 12345
 import delimited "img.csv"
 
-// Make a percentage of data missing (MCAR)
-// gen randsort = .
-// foreach var of varlist v* {
-// 	replace randsort = runiform()
-// 	sort randsort
-// 	replace `var' = . if runiform() < 0.05
-// }
+//Make a percentage of data missing (MCAR)
+gen randsort = .
+foreach var of varlist v* {
+	replace randsort = runiform()
+	sort randsort
+	replace `var' = . if runiform() < 0.05
+}
 
 nmf v*, 				///
 	k(20) 				///
@@ -65,7 +65,7 @@ nmf v*, 				///
 	stop(1.0e-4) 		///
 	method(mu) 			///
 	loss(eu) 			///
-	//nograph noframes	
+	nograph noframes	
 
 
 	
