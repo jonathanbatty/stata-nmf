@@ -74,9 +74,9 @@ rename v1 gene
 // Run NMF
 nmf p*, 				///
 	k(15) 				///
-	iter(2000) 			///
+	iter(500) 			///
 	initial(randomu) 	///
-	stop(1.0e-4) 		///
+	stop(1.0e-5) 		///
 	method(mu) 			///
 	loss(eu) 			///
 	//nograph noframes	
