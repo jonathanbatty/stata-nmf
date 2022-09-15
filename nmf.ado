@@ -3,10 +3,10 @@ capture program drop nmf
 program define nmf, rclass
     version 17
  
-    syntax varlist(numeric), k(integer) iter(integer) [initial(string) method(string) loss(string) stop(numlist max = 1) nograph noframes]
+    syntax varlist(numeric), k(integer) iter(integer) [initial(string) method(string) loss(string) stop(numlist max = 1) nograph]
     
-    // Written by Dr Jonathan Batty (J.Batty@leeds.ac.uk)
-    // at the Leeds Institute for Data Analytics (LIDA),
+    // Written by Dr Jonathan Batty (J.Batty@leeds.ac.uk),
+    // Leeds Institute for Data Analytics (LIDA),
     // University of Leeds.
     //
     // Aim:
@@ -25,8 +25,7 @@ program define nmf, rclass
     //      Note: The multiplicative update ('mu') solver cannot update zeros present in the initialization, and so leads to poorer results when used jointly with nndsvd. Co-ordinate descent mitigates this
     //
     //      method(): method of updating matrices at each iteration
-    //          cd [*default] - two-block co-ordinate descent, using the fast hierarchical alternate least squares method (fast-HALS) of Cichocki and Phan (2009)
-    //          mu - multiplicative updating of W and H, using the method of Lee and Seung (1999)
+    //          mu [*default] - multiplicative updating of W and H, using the method of Lee and Seung (1999)
     //          
     //      loss(): divergence function options, specified using the loss() parameter, include:
     //          eu [*default] - Frobenius (Euclidean) norm (equivalent to MSE for matrices)
@@ -39,26 +38,16 @@ program define nmf, rclass
     //
     //      nograph suppresses production of the graph of loss divergence at each iteration
     //
-    //      noframes does not save frames containing output matrices: W, H and norms 
-    //
     // <Outputs>
     //      W - 
     //      H - 
     //
-    //  Status and next steps:
-    //  MU working well
-    //  
-    //  DEBUG WITH : https://github.com/umurotti/NMF/blob/main/Two_Block_Coordinate_Descent.m
-    //  
-    //  Initialise matrices as in matlab or based on range of input parameters? Scale better
-    //  Create HALS function that uses KL divergence
-    //  Implement missing value version of HALS 
 
     // If a value for initialisation method is not passed, default option is is random initialisation 
     if "`initial'" == "" local initial "randomu"
 
     // If a value for updating method is not passed, default option is is multiplicative updating (mu) 
-    if "`method'" == "" local method "cd"
+    if "`method'" == "" local method "mu"
 
     // If a value specifying the form of loss divergence normalisation is not passed, default option is is Frobenius normalisation (2) 
     if "`loss'" == "" local loss = "eu"
@@ -69,40 +58,39 @@ program define nmf, rclass
     // Run NMF
     mata: nmf("`varlist'", `k', `iter', "`initial'", "`method'", "`loss'", `stop')
 
-    // Store using stata matrices
+    // Store results of NMF using stata matrices
     matrix W = r(W)
     matrix H = r(H)
     matrix norms = r(norms)
 
     // Creates frames containing output matrices: W, H and norms
-    if "`frames'" != "noframes" {
-        
-        display "Creating frames W, F and norms to hold results."
+    display "Creating frames W, F and norms to hold results."
 
-        // Create empty new frames to hold matrices
-        foreach outputFrame in W H norms {
+    // Create empty new frames to hold matrices
+    foreach outputFrame in W H norms {
 
-            // If a frame with the given name exists - drops and recreates it
-            capture confirm frame `outputFrame'
-            if !_rc {
-                frame drop `outputFrame'
-                frame create `outputFrame'
-            }
-            else {
-                frame create `outputFrame'
-            }
-
-            // Populate each frame with the returned matrix object
-            frame `outputFrame' {
-                quietly svmat `outputFrame'
-            }
+        // If a frame with the given name exists - drops and recreates it
+        capture confirm frame `outputFrame'
+        if !_rc {
+            frame drop `outputFrame'
+            frame create `outputFrame'
+        }
+        else {
+            frame create `outputFrame'
         }
 
-        // Add iteration identifier to norms frame
-        frame norms {
-            rename norms1 iteration
-            rename norms2 loss
+        // Populate each frame with the returned matrix object
+        frame `outputFrame' {
+            quietly svmat `outputFrame'
         }
+    }
+
+    // Add iteration identifier to norms frame
+    frame norms {
+        rename norms1 iteration
+        rename norms2 totalLoss
+        rename norms3 averageLoss
+        local ymax = averageLoss[2]
     }
 
     // Plots the normalisation values calculated after each iteration
@@ -113,13 +101,11 @@ program define nmf, rclass
         if "`loss'" == "is" local lossString "Itakura-Saito Divergence" 
         if "`loss'" == "kl" local lossString "Generalized Kullback-Leibler Divergence"
         if "`loss'" == "eu" local lossString "Frobenius (Euclidean) Error "
-
-        local plotIterations = colsof(norms)
-
-        frame norms: graph twoway line loss iteration if iteration > 0,                                                                                 ///
+        di "`ymax'"
+        frame norms: graph twoway line averageLoss iteration if iteration > 0,                                                                                 ///
                                                       title("Loss Function")                                                                            ///
                                                       xtitle("Iteration") xlabel(, labsize(*0.75) grid glcolor(gs15))                                   ///
-                                                      ytitle("`lossString'") yscale(range(0 .)) ylabel(#5, ang(h) labsize(*0.75) grid glcolor(gs15))    ///
+                                                      ytitle("Mean `lossString'") yscale(range(0 .)) ylabel(#5, ang(h) labsize(*0.75) grid glcolor(gs15))    ///
                                                       graphregion(color(white))
     }
 
@@ -190,13 +176,12 @@ void nmf(string scalar varlist,
         printf("Error - an invalid initialisation type has been set.")
     }
   
-    // Calculate error of initialised matrices
-    normResult = lossDivergence(A, W, H, loss, hasMissing)
-
     // Create a column matrix (rows = iterations, columns = 1) to store normalisation results from each iteration
-    norms = J(1, 2, .)
+    normResult = lossDivergence(A, W, H, loss, hasMissing)
+    norms = J(1, 3, .)
     norms[1, 1] = 0
     norms[1, 2] = normResult
+    norms[1, 3] = normResult / (length(A) - missing(A))
 
     // Updating matrices the given number of iterations
     printf("Factorizing matix...\n\n")
@@ -231,20 +216,21 @@ void nmf(string scalar varlist,
             }
             
         }
-        else if (method == "cd") {
-            cd(A, W, H)
+        else {
+            _error("An invalid method has been chosen.")
         }
-
+        
         // Calculate divergence (error) metric
         // This could be done every 5, 10 etc iterations ('trace' parameter)?
         normResult = lossDivergence(A, W, H, loss, hasMissing)
 
         // Update norms matrix with result of current iteration
-        norm = J(1, 2, .)
+        norm = J(1, 3, .)
         norm[1, 1] = i
         norm[1, 2] = normResult
+        norm[1, 3] = normResult / (length(A) - missing(A))
         norms = norms \ norm
-
+        
         // Print result of iteration to the screen
         if (loss == "is") lossMethodString = "Itakura-Saito Divergence"
         if (loss == "kl") lossMethodString = "Generalized Kullback-Leibler Divergence"
@@ -415,7 +401,7 @@ scalar lossDivergence(real matrix A,
         }
         else if (loss == "eu") {
             // eu = Frobenius (or Euclidean) norm
-            divergence = sqrt(sum((A - W*H) :^ 2))
+            divergence = sum((A - W*H) :^ 2)
         }
         else {
             _error("Invalid value of loss function supplied.")
@@ -488,10 +474,11 @@ void mu_kl(real matrix A,
            real matrix H)
 {
     // Update H
-    H = H :* ((W' * (A :/ (W*H))) :/ (W' * J(cols(W'), cols(W'), 1)))
-
+    H = H :* ((W' * (A :/ (W*H))) :/ (W' * J(rows(W), cols(H), 1)))
+    
     // Update W
-    W = W :* (((A :/ (W*H)) * H') :/ (J(rows(H'), rows(H') , 1) * H'))
+    W = W :* (((A :/ (W*H)) * H') :/ (J(rows(W), cols(H) , 1) * H'))
+    
 }
 
 void mu_kl_missing(real matrix A,
@@ -523,57 +510,6 @@ void mu_is(real matrix A,
     // Update W
     WH = W*H
     W = W :* (((A :/ ((WH :^ 2) :+ epsilon(1))) * H') :/ (((WH :+ epsilon(1)) :^ -1) * H'))
-}
-
-void cd(real matrix A, 
-        real matrix W, 
-        real matrix H)
-{
-    // Implements 2-block co-ordinate descent with HALS updating
-
-    // References:
-    // [1] Cichocki, A. and Phan, A. Fast Local Algorithms for Large Scale Nonnegative
-    //     Matrix and Tensor Factorizations. IEICE Transactions. 92-A. pp. 708-721, 2009.
-    // [2] Hsieh, C, and Dhillon, I. Fast coordinate descent methods with variable 
-    //     selection for non-negative matrix factorization. 1064-1072. 2011.
-    
-    // Update W
-    W = HALS(A, H, W)
-    
-    // Update H
-    H = (HALS(A', W', H'))'
-
-}
-
-real matrix HALS(real matrix A, 
-                 real matrix H, 
-                 real matrix W)
-{
-    // Declare all variable types
-    real scalar m, n, l, k, mult, sq
-    real colvector col, colW, H_TA, col_up
-    
-    m = rows(W)
-    n = cols(W)
-
-    // Loop over every column of W (equal to k, rank)
-    for (l = 1; l <= n; l++) {
-        col = J(m, 1, 0)
-        for (k = 1; k <= n; k++) {
-            if (k != l) {
-                mult = H[k, .] * (H[l, .])'
-                colW = W[., k]
-                col = col + colW * mult
-            }
-        }
-        H_TA = A * H[l, .]'
-        sq = (sqrt(sum(H[l, .] :^ 2))) ^ 2
-        col_up = (H_TA - col) / sq
-        col_up[., 1] = (col_up[., 1] :>= 0 ) :* col_up[., 1]    
-
-        W[., l] = col_up[., 1]
-    }
-    return(W)
 }
 
 real scalar matrixMean(real matrix A)
