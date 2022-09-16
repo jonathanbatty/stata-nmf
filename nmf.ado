@@ -1,9 +1,9 @@
 capture program drop nmf
-*! version 0.01 05 Sep 2022
+*! version 1.00 16 Sep 2022
 program define nmf, rclass
     version 17
  
-    syntax varlist(numeric), k(integer) iter(integer) [initial(string) method(string) loss(string) stop(numlist max = 1) nograph]
+    syntax varlist(numeric), k(integer) epoch(integer) [initial(string) loss(string) stop(numlist max = 1) nograph]
     
     // Written by Dr Jonathan Batty (J.Batty@leeds.ac.uk),
     // Leeds Institute for Data Analytics (LIDA),
@@ -15,6 +15,12 @@ program define nmf, rclass
     // minima from a set of initialisations.
     //
     // <Inputs>:
+    //      varlist
+    //      
+    //      k()
+    //
+    //      epoch()
+    //
     //      initial(): initialisation options, specified using the init() parameter, include:
     //          randomu [*default] - random, uniform initialisation of matrix in range [1, 2] 
     //          randomn - random, normally-distributed initialisation of matrix with mean 2 and standard deviation 1
@@ -24,16 +30,13 @@ program define nmf, rclass
     //      Using the random option, multiple runs will be required to identify the factorization that achieves the lowest approximation error. Other options are deterministic and only need to be ran once.
     //      Note: The multiplicative update ('mu') solver cannot update zeros present in the initialization, and so leads to poorer results when used jointly with nndsvd. Co-ordinate descent mitigates this
     //
-    //      method(): method of updating matrices at each iteration
-    //          mu [*default] - multiplicative updating of W and H, using the method of Lee and Seung (1999)
-    //          
     //      loss(): divergence function options, specified using the loss() parameter, include:
     //          eu [*default] - Frobenius (Euclidean) norm (equivalent to MSE for matrices)
     //          is - Itakura-Saito divergence 
     //          kl - Generalized Kullback-Leibler divergence
     //
     //      stop(): early stopping options, specified using the stop() parameter, include:
-    //          0 - early stopping off; NMF continues for numer of iterations specified in iter
+    //          0 - early stopping off; NMF continues for numer of iterations specified in epoch
     //          float value, e.g. 1.0e-4 [*default] - if ((previous error - current error) / error at initiation) < stop tolerance) then further iterations are not performed
     //
     //      nograph suppresses production of the graph of loss divergence at each iteration
@@ -56,7 +59,7 @@ program define nmf, rclass
     if "`stop'" == "" local stop = 1.0e-4
 
     // Run NMF
-    mata: nmf("`varlist'", `k', `iter', "`initial'", "`method'", "`loss'", `stop')
+    mata: nmf("`varlist'", `k', `epoch', "`initial'", "`method'", "`loss'", `stop')
 
     // Store results of NMF using stata matrices
     matrix W = r(W)
@@ -87,7 +90,7 @@ program define nmf, rclass
 
     // Add iteration identifier to norms frame
     frame norms {
-        rename norms1 iteration
+        rename norms1 epoch
         rename norms2 totalLoss
         rename norms3 averageLoss
         local ymax = averageLoss[2]
@@ -96,15 +99,13 @@ program define nmf, rclass
     // Plots the normalisation values calculated after each iteration
     if "`graph'" != "nograph" {
 
-        display "Plotting graph of loss function..."
-
         if "`loss'" == "is" local lossString "Itakura-Saito Divergence" 
         if "`loss'" == "kl" local lossString "Generalized Kullback-Leibler Divergence"
         if "`loss'" == "eu" local lossString "Frobenius (Euclidean) Error "
-        di "`ymax'"
-        frame norms: graph twoway line averageLoss iteration if iteration > 0,                                                                                 ///
+
+        frame norms: graph twoway line averageLoss epoch if epoch > 0,                                                                                 ///
                                                       title("Loss Function")                                                                            ///
-                                                      xtitle("Iteration") xlabel(, labsize(*0.75) grid glcolor(gs15))                                   ///
+                                                      xtitle("Epoch") xlabel(, labsize(*0.75) grid glcolor(gs15))                                   ///
                                                       ytitle("Mean `lossString'") yscale(range(0 .)) ylabel(#5, ang(h) labsize(*0.75) grid glcolor(gs15))    ///
                                                       graphregion(color(white))
     }
@@ -123,7 +124,7 @@ mata:
 
 void nmf(string scalar varlist, 
          real scalar k, 
-         real scalar iter, 
+         real scalar epoch, 
          string scalar initial,
          string scalar method,
          string scalar loss,
@@ -176,7 +177,7 @@ void nmf(string scalar varlist,
         printf("Error - an invalid initialisation type has been set.")
     }
   
-    // Create a column matrix (rows = iterations, columns = 1) to store normalisation results from each iteration
+    // Create a column matrix (rows = epochs) to store normalisation results from each iteration
     normResult = lossDivergence(A, W, H, loss, hasMissing)
     norms = J(1, 3, .)
     norms[1, 1] = 0
@@ -184,10 +185,15 @@ void nmf(string scalar varlist,
     norms[1, 3] = normResult / (length(A) - missing(A))
 
     // Updating matrices the given number of iterations
-    printf("Factorizing matix...\n\n")
-    
+    printf("\nFactorizing matix...{space 29} Maximum number of epochs set at: %9.0f \n\n", epoch)
+
+    printf("{txt}{space 4}Epoch {c |}{space 12}Loss Function {c |}{space 5}Total Error {c |}{space 5}Mean Error {c |}{space 5}Relative Error\n")
+    printf("{hline 10}{c +}{hline 26}{c +}{hline 17}{c +}{hline 16}{c +}{hline 19}\n")
+    //printf("{txt}%12s {c |} {res}%10.0g %10.0g\n", varname[i], coef[i], se[i])
+
+
     // Update W and H by chosen update method
-    for (i = 1; i <= iter; i++) {
+    for (i = 1; i <= epoch; i++) {
         if (method == "mu") {
 
             if (loss == "eu") {
@@ -214,7 +220,6 @@ void nmf(string scalar varlist,
                     mu_is(A, W, H)
                 }              
             }
-            
         }
         else {
             _error("An invalid method has been chosen.")
@@ -232,28 +237,41 @@ void nmf(string scalar varlist,
         norms = norms \ norm
         
         // Print result of iteration to the screen
-        if (loss == "is") lossMethodString = "Itakura-Saito Divergence"
-        if (loss == "kl") lossMethodString = "Generalized Kullback-Leibler Divergence"
-        if (loss == "eu") lossMethodString = "Frobenius (Euclidean) Norm"
+        if (loss == "is") lossMethodString = "Itakura-Saito"
+        if (loss == "kl") lossMethodString = "Kullback-Leibler"
+        if (loss == "eu") lossMethodString = "Frobenius (Euclidean)"
 
-        if (i == 1 | mod(i, 10) == 0 | i == iter) {
-            printf("Iteration " + strofreal(i) + " of " + strofreal(iter) + ":\t\tLoss - " + lossMethodString + ":  %9.2f\n", normResult)
+        if (mod(i, 10) == 0 | i == epoch) {
+            // Calculate relative error
+            relError = (norms[i - 1, 2] - norms[i, 2]) / norms[2, 2]
+
+            // Print results to the screen
+            printf("%9.0f {c |} %24s {c |}%16.2f {c |}%15.4f {c |}%19.6f\n", i, lossMethodString, normResult, norm[1, 3], relError)
         }
         
         // Implement stopping rule if one is set (i.e. stop > 0)
         // Checks every 10 iterations whether MU should contine or if it should stop.
         if (stop != 0 & mod(i, 10) == 0){
-            
+            // Calculate stopping measure
             // if ((previous error - current error) / error at initiation) < stop tolerance) then stop
             stopMeasure = (norms[i - 1, 2] - norms[i, 2]) / norms[2, 2]
-            if (stopMeasure < stop)
+            if (relError < stop)
             {
-                printf("\nStopping at iteration " + strofreal(i) + "...\n")
-                printf("Criteria for early stoping have been met. Error reduced to: " + strofreal(stopMeasure) + ", which < the stopping threshold (" + strofreal(stop) +").\n\n")
+                printf("{result}\nStopping at epoch " + strofreal(i) + "...\n")
+                printf("{result}Criteria for early stoping have been met. Error reduced to: " + strofreal(stopMeasure) + ", which < the stopping threshold (" + strofreal(stop) +").\n\n")
                 break
             }
         }    
+        
+        // If reach end of set iterations and model has not converged: warn user
+        if (i == epoch) {
+            printf("{error}\nMatrix decomposition did not converve within the set number of epochs.\n") 
+            printf("Please consider increasing the number of epochs used during decomposition.\n")
+        }
     }
+
+    printf("{text}\n")
+
 
     // Return results object to stata
     st_matrix("r(W)", W)

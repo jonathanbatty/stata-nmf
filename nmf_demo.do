@@ -62,7 +62,7 @@ rename v1 gene
 
 // gen origorder = _n
 // gen randsort = .
-// foreach var of varlist v* {
+// foreach var of varlist p* {
 // 	replace randsort = runiform()
 // 	sort randsort
 // 	replace `var' = . if runiform() < 0.05
@@ -74,19 +74,18 @@ rename v1 gene
 // Run NMF
 nmf p*, 				///
 	k(15) 				///
-	iter(500) 			///
+	epoch(300) 			///
 	initial(randomu) 	///
 	stop(1.0e-4) 		///
-	method(mu) 			///
-	loss(is) 			///
+	loss(kl) 			///
 	//nograph	
 
 	
-	
-
 matrix W = r(W)
 matrix H = r(H)
 matrix norms = r(norms)
+matrix list W
+matrix list H
 matrix list norms
 
 
@@ -119,17 +118,27 @@ matrix list norms
 
 clear all
 mata:
-A = (., 2, 3 \ 4, 0, 6 \ ., 8, 9)
+A = (1, 2, 3 \ 4, 5, 6 \ 7, 8, 9)
+B = (9, 8, 7 \ 6, 5, 4 \ 3, 2, 1)
+
+
+Amax = (A :>= B) :* A
+Bmax = (B :> A) :* B
+
+res = Amax :+ Bmax
+
 A
+B
+res
 
-mask = (A :!= .)
-maskedA = A :* mask
+// mask = (A :!= .)
+// maskedA = A :* mask
+//
+// mask
+// maskedA
 
-mask
-maskedA
-
-_editmissing(A, 0)
-A
+// _editmissing(A, 0)
+// A
 
 end
 
