@@ -74,7 +74,7 @@ rename v1 gene
 // Run NMF
 nmf p*, 				///
 	k(15) 				///
-	epoch(300) 			///
+	epoch(500) 			///
 	initial(randomu) 	///
 	stop(1.0e-4) 		///
 	loss(kl) 			///
