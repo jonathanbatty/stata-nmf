@@ -15,11 +15,11 @@ program define nmf, rclass
     // minima from a set of initialisations.
     //
     // <Inputs>:
-    //      varlist
+    //      varlist: variables that contain columns of data to factorise. All rows of these columns will enter into the factorisation.
     //      
-    //      k()
+    //      k(): the rank of the factorisation, whereby k must be less than the rank of the number of columns input in varlist.
     //
-    //      epoch()
+    //      epoch(): the number of iterations of NMF to repeat to achieve convergence.
     //
     //      initial(): initialisation options, specified using the init() parameter, include:
     //          randomu [*default] - random, uniform initialisation of matrix in range [1, 2] 
@@ -42,8 +42,8 @@ program define nmf, rclass
     //      nograph suppresses production of the graph of loss divergence at each iteration
     //
     // <Outputs>
-    //      W - 
-    //      H - 
+    //      W - factor (basis) matrix W
+    //      H - factor (encoding or coefficient) matrix H 
     //
 
     // If a value for initialisation method is not passed, default option is is random initialisation 
@@ -67,7 +67,7 @@ program define nmf, rclass
     matrix norms = r(norms)
 
     // Creates frames containing output matrices: W, H and norms
-    display "Creating frames W, F and norms to hold results."
+    display "Creating frames W, H and norms to hold results."
 
     // Create empty new frames to hold matrices
     foreach outputFrame in W H norms {
@@ -265,7 +265,7 @@ void nmf(string scalar varlist,
         
         // If reach end of set iterations and model has not converged: warn user
         if (i == epoch) {
-            printf("{error}\nMatrix decomposition did not converve within the set number of epochs.\n") 
+            printf("{error}\nMatrix decomposition did not converge within the set number of epochs.\n") 
             printf("Please consider increasing the number of epochs used during decomposition.\n")
         }
     }

@@ -148,7 +148,7 @@ For detailed information on the whatever statistic, see
 {title:References}
 
 {pstd}
-[1] Paatero, P. and Tapperm U. Positive matrix factorization: A non-negative factor model with optimal utilization of error estimates of data values. Environmetrics, 5: pp. 111-126 (1994).
+[1] Paatero, P. and Tapper U. Positive matrix factorization: A non-negative factor model with optimal utilization of error estimates of data values. Environmetrics, 5: pp. 111-126 (1994).
 {p_end}
 
 {pstd}
