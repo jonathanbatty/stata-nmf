@@ -1,9 +1,9 @@
 v 1.00
-d NMF: A Stata package to perform non-negative matrix factorisation
+d NMF: A Stata package to perform non-negative matrix factorisation (NMF)
 
 d Distribution date: 16 Jan 2024
 
 d Jonathan A. Batty
 d J.Batty@leeds.ac.uk
 
-p nmf a package to perform non-negative matrix factorisation
+p nmf A package to perform non negative matrix factorisation
