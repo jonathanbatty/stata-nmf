@@ -17,7 +17,7 @@ This repository contains a number of implementations of non-negative matrix fact
 The package can be installed from GitHub, using the `net install` syntax:
 
 ```
-net install nmf, from("https://raw.githubusercontent.com/jonathanbatty/stata-nmf/installation/") replace
+net install nmf, from("https://raw.githubusercontent.com/jonathanbatty/stata-nmf/main/installation/") replace
 ```
 
 ## Syntax
