@@ -1,4 +1,4 @@
-
+![NMF in Stata](assets/package.png?raw=true "NMF in Stata")
 
 ![StataMin](https://img.shields.io/badge/stata-2024-blue) ![issues](https://img.shields.io/github/issues/jonathanbatty/stata-nmf) ![license](https://img.shields.io/github/license/jonathanbatty/stata-nmf) ![Stars](https://img.shields.io/github/stars/jonathanbatty/stata-nmf) ![version](https://img.shields.io/github/v/release/jonathanbatty/stata-nmf) ![release](https://img.shields.io/github/release-date/jonathanbatty/stata-nmf)
 
@@ -9,7 +9,7 @@
 ---
 
 # Non-negative Matrix Factorisation (NMF) v1.0
-(15 Jan 2024)
+(16 Jan 2024)
 
 This repository contains a number of implementations of non-negative matrix factorisation (NMF), implemented in Stata using optimised Mata functions.
 
