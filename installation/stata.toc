@@ -1,7 +1,7 @@
 v 1.00
 d NMF: A Stata package to perform non-negative matrix factorisation
 d
-d Distribution-Date: 20240116
+d Distribution date: 16 Jan 2024
 d
 d Jonathan A. Batty, 
 d J.Batty@leeds.ac.uk
