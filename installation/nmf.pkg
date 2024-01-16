@@ -9,13 +9,16 @@ d KW: non negative matrix factorisation
 d KW: unsupervised machine learning
 d KW: dimensionality reduction
 d
-d Distribution-Date: 20240116
+d Distribution date: 16 Jan 2024
 d
 d This  version: 16 Jan 2024
 d First version: 16 Jan 2024
+
 d License: MIT
 d
 d Author: Jonathan Batty (J.Batty@leeds.ac.uk)
 d
 f nmf.ado
 f nmf.sthlp
+f nsclc.dta
+f faces.dta

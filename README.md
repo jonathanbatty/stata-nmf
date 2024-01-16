@@ -18,6 +18,7 @@ The package can be installed from GitHub, using the `net install` syntax:
 
 ```
 net install nmf, from("https://raw.githubusercontent.com/jonathanbatty/stata-nmf/main/installation/") replace
+
 ```
 
 ## Syntax
