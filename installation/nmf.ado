@@ -3,7 +3,7 @@ capture program drop nmf
 program define nmf, rclass
     version 17
  
-    syntax varlist(numeric), k(integer) epoch(integer) [initial(string) loss(string) stop(numlist max = 1) nograph]
+    syntax varlist(numeric), k(integer) [epoch(integer) initial(string) loss(string) stop(numlist max = 1) nograph]
     
     // Written by Dr Jonathan Batty (J.Batty@leeds.ac.uk),
     // Leeds Institute for Data Analytics (LIDA),
@@ -47,7 +47,7 @@ program define nmf, rclass
     //
 
     // If a value for the number of epochs is not passed, this will default to 200. 
-    if "`epoch'" == "" local epoch 200
+    if "`epoch'" == "" local epoch = 200
 
     // If a value for initialisation method is not passed, default option is is random initialisation 
     if "`initial'" == "" local initial "randomu"
