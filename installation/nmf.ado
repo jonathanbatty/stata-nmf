@@ -64,7 +64,7 @@ program define nmf, rclass
     // Store results of NMF using stata matrices
     matrix W = r(W)
     matrix H = r(H)
-    matrix error = r(error)
+    matrix error = r(norms)
 
     // Creates frames containing output matrices: W, H and norms
     display "Creating frames W, H and error to hold results."
