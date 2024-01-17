@@ -26,12 +26,12 @@ Perform matrix decomposition using NMF:
 {synopthdr}
 {synoptline}
 {syntab:Main}
-{p2coldent:* {opt k(#)}}perform matrix decomposition to give non-negative matrices of rank {bf: k(#)}.{p_end}
-{synopt:{opt epoch(#)}}maximum number of iterations over which to optimize the decomposed matrices W and H to minimise the error function.{p_end}
-{synopt:{opt initial(string)}}used to set initialisation method. Options include: randomu, randomn, nndsvd, nndsvda and nndsvdar.{p_end}
-{synopt:{opt loss(string)}}defines the loss function used to calculate the error function for {c |}{c |}A - WH{c |}{c |}. Options include: eu, is and kl. Default is {cmd: loss(eu)}{p_end}
-{synopt:{opt stop(#)}}declares the early stopping threshold for convergence.{p_end}
-{synopt:{opt nograph}}suppress graph of epoch vs. the chosen loss function at the end of matrix decomposition.{p_end}
+{p2coldent:* {opt k(#)}}specifes the rank, {bf: k}, of the factorisation.{p_end}
+{synopt:{opt epoch(#)}}maximum number of iterations over which to minimise the error function.{p_end}
+{synopt:{opt initial(string)}}declares the matrix initialisation method.{p_end}
+{synopt:{opt loss(string)}}declares the loss function used to calculate {c |}{c |}A - WH{c |}{c |}.
+{synopt:{opt stop(#)}}declares the early stopping delta threshold for convergence.{p_end}
+{synopt:{opt nograph}}suppress graph of epoch vs. loss function.{p_end}
 {synoptline}
 {p2colreset}{...}
 {p 4 6 2}
@@ -102,8 +102,8 @@ specifies that .
 {marker loss()}{...}
 {phang}
 {opt loss(option)}
-indicates which loss function will be minimized during the optimization of the decomposition.  The
-available {it:option}s are:
+indicates which loss function will be minimized during the optimization of the decomposition. This sets the error function 
+for {c |}{c |}A - WH{c |}{c |}. Options include: eu, is and kl. Default is {cmd: loss(eu)}. Available {it:option}s are:
 
 {phang2}
 {opt is},
