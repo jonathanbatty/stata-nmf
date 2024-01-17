@@ -3,7 +3,7 @@ capture program drop nmf
 program define nmf, rclass
     version 17
  
-    syntax varlist(numeric), k(integer) epoch(integer) [initial(string) loss(string) stop(numlist max = 1) nograph]
+    syntax varlist(numeric), k(integer) [epoch(integer) initial(string) loss(string) stop(numlist max = 1) nograph]
     
     // Written by Dr Jonathan Batty (J.Batty@leeds.ac.uk),
     // Leeds Institute for Data Analytics (LIDA),
@@ -19,7 +19,7 @@ program define nmf, rclass
     //      
     //      k(): the rank of the factorisation, whereby k must be less than the rank of the number of columns input in varlist.
     //
-    //      epoch(): the number of iterations of NMF to repeat to achieve convergence.
+    //      epoch(): the number of iterations of NMF to repeat to achieve convergence. Dafault = 200.
     //
     //      initial(): initialisation options, specified using the init() parameter, include:
     //          randomu [*default] - random, uniform initialisation of matrix in range [1, 2] 
@@ -45,6 +45,9 @@ program define nmf, rclass
     //      W - factor (basis) matrix W
     //      H - factor (encoding or coefficient) matrix H 
     //
+
+    // If a value for the number of epochs is not passed, this will default to 200. 
+    if "`initial'" == "" local epoch 200
 
     // If a value for initialisation method is not passed, default option is is random initialisation 
     if "`initial'" == "" local initial "randomu"
