@@ -31,7 +31,7 @@ Perform matrix decomposition using NMF:
 {synopt:{opt initial(string)}}used to set initialisation method. Options include: randomu, randomn, nndsvd, nndsvda and nndsvdar.{p_end}
 {synopt:{opt loss(string)}}defines the loss function used to calculate the error function for {c |}{c |}A - WH{c |}{c |}. Options include: eu, is and kl. Default is {cmd: loss(eu)}{p_end}
 {synopt:{opt stop(#)}}sets the early stopping threshold for convergence; if {cmd: stop(0)} is set, optimization will continue for the set number of epochs. If ((previous error - current error) / error at initiation) < stop tolerance), convergence has occured and optimization terminates. Default is {cmd: stop(1.0e-4)}{p_end}
-{synopt:{opt nograph}}plots graph of epoch vs. the chosen loss function at the end of the decomposition.{p_end}
+{synopt:{opt nograph}}suppress graph of epoch vs. the chosen loss function at the end of the decomposition.{p_end}
 {synoptline}
 {p2colreset}{...}
 {p 4 6 2}
