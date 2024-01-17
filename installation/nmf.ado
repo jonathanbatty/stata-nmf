@@ -103,19 +103,19 @@ program define nmf, rclass
         if "`loss'" == "kl" local lossString "Generalized Kullback-Leibler Divergence"
         if "`loss'" == "eu" local lossString "Frobenius (Euclidean) Error "
 
-        frame norms: graph twoway line average_loss epoch if epoch > 0,                                                                                      ///
+        frame error: graph twoway line average_loss epoch if epoch > 0,                                                                                      ///
                                                       title("Loss Function")                                                                                 ///
                                                       xtitle("Epoch") xlabel(, labsize(*0.75) grid glcolor(gs15))                                            ///
                                                       ytitle("Mean `lossString'") yscale(range(0 .)) ylabel(#5, ang(h) labsize(*0.75) grid glcolor(gs15))    ///
                                                       graphregion(color(white))
     }
 
-    display "Returning final matrices in r(W), r(H) and r(norms)"
+    display "Returning final matrices in r(W), r(H) and r(error)"
 
     // Return final results
     return matrix W W
     return matrix H H
-    return matrix norms norms
+    return matrix error error
 
 end
 

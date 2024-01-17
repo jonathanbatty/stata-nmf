@@ -60,7 +60,7 @@ mata: mata clear
 matrix drop preview_matrix
 
 // Perform NMF
-nmf v*, k(10) epoch(1000) initial(randomu) loss(eu) nograph
+nmf v*, k(81) epoch(1000) initial(randomu) loss(eu) nograph
 
 // Change to frame containing basis matrix (W) and plot these features
 frame change W
@@ -68,12 +68,12 @@ frame change W
 mata: feature_matrix = J(448, 448, .)
 mata: st_matrix("feature_matrix", feature_matrix)
 
-forvalues i = 1/7 {
-	forvalues j = 1/7 {
+forvalues i = 1/9 {
+	forvalues j = 1/9 {
 		
-		local counter = ((`i' - 1) * 7) + `j'
+		local counter = ((`i' - 1) * 9) + `j'
 	
-		if `counter' <= 10 {
+		if `counter' <= 81 {
 			
 			// Create 64 x 64 matrix from the randomly selected column (basis)
 			mkmat W`counter', matrix("feature")
