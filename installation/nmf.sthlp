@@ -29,7 +29,7 @@ Perform matrix decomposition using NMF:
 {p2coldent:* {opt k(#)}}specifes the rank, {bf: k}, of the factorisation.{p_end}
 {synopt:{opt epoch(#)}}maximum number of iterations over which to minimise the error function.{p_end}
 {synopt:{opt initial(string)}}declares the matrix initialisation method.{p_end}
-{synopt:{opt loss(string)}}declares the loss function used to calculate {c |}{c |}A - WH{c |}{c |}.
+{synopt:{opt loss(string)}}declares the loss function used to calculate {c |}{c |}A - WH{c |}{c |}.{p_end}
 {synopt:{opt stop(#)}}declares the early stopping delta threshold for convergence.{p_end}
 {synopt:{opt nograph}}suppress graph of epoch vs. loss function.{p_end}
 {synoptline}
