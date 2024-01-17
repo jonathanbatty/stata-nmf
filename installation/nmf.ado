@@ -188,7 +188,7 @@ void nmf(string scalar varlist,
     displayas("text")
     printf("\nFactorizing matix...{space 29} Maximum number of epochs set at: %9.0f \n\n", epoch)
 
-    printf("{hline 10}{c +}{hline 26}{c +}{hline 17}{c +}{hline 16}{c +}{hline 19}\n")
+    printf("{hline 10}{c T}{hline 26}{c T}{hline 17}{c T}{hline 16}{c T}{hline 19}\n")
     printf("{txt}{space 4}Epoch {c |}{space 12}Loss Function {c |}{space 5}Total Error {c |}{space 5}Mean Error {c |}{space 5}Relative Error\n")
     printf("{hline 10}{c +}{hline 26}{c +}{hline 17}{c +}{hline 16}{c +}{hline 19}\n")
     //printf("{txt}%12s {c |} {res}%10.0g %10.0g\n", varname[i], coef[i], se[i])
@@ -268,6 +268,7 @@ void nmf(string scalar varlist,
         
         // If reach end of set iterations and model has not converged: warn user
         if (i == epoch) {
+            printf("{hline 10}{c +}{hline 26}{c +}{hline 17}{c +}{hline 16}{c +}{hline 19}\n")
             printf("{error}\nMatrix decomposition did not converge within the set number of epochs.\n") 
             printf("Please consider increasing the number of epochs used during decomposition.\n")
         }
