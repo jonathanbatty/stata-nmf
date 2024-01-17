@@ -27,7 +27,7 @@ Perform matrix decomposition using NMF:
 {synoptline}
 {syntab:Main}
 {p2coldent:* {opt k(#)}}perform matrix decomposition to give non-negative matrices of rank {bf: k(#)}.{p_end}
-{p2coldent:  {opt epoch(#)}}maximum number of iterations over which to optimize the decomposed matrices W and H to minimise the error function.{p_end}
+{synopt:{opt epoch(#)}}maximum number of iterations over which to optimize the decomposed matrices W and H to minimise the error function.{p_end}
 {synopt:{opt initial(string)}}used to set initialisation method. Options include: randomu, randomn, nndsvd, nndsvda and nndsvdar.{p_end}
 {synopt:{opt loss(string)}}defines the loss function used to calculate the error function for {c |}{c |}A - WH{c |}{c |}. Options include: eu, is and kl. Default is {cmd: loss(eu)}{p_end}
 {synopt:{opt stop(#)}}sets the early stopping threshold for convergence; if {cmd: stop(0)} is set, optimization will continue for the set number of epochs. If ((previous error - current error) / error at initiation) < stop tolerance), convergence has occured and optimization terminates. Default is {cmd: stop(1.0e-4)}{p_end}
