@@ -60,7 +60,7 @@ Seung[2, 3].
 {pstd}
 Running NMF results in the generation of three new frames, {bf:W}, {bf:H} and {bf:error} that 
 store the basis and coefficient matrices and a summary of the error over each epoch, respectively.
-These can be accessed using: {cmd: frame change W}, {cmd: frame change H} and {cmd: frame change error}.
+These can be accessed using:{cmd: frame change W}, {cmd: frame change H} and {cmd: frame change error}.
 
 
 {marker options}{...}
