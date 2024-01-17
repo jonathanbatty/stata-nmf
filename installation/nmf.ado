@@ -3,7 +3,7 @@ capture program drop nmf
 program define nmf, rclass
     version 17
  
-    syntax varlist(numeric), k(integer) epoch(integer default=200) [initial(string) loss(string) stop(numlist max = 1) nograph]
+    syntax varlist(numeric), k(integer) [ epoch(integer 200) initial(string) loss(string) stop(numlist max = 1) nograph ]
     
     // Written by Dr Jonathan Batty (J.Batty@leeds.ac.uk),
     // Leeds Institute for Data Analytics (LIDA),
