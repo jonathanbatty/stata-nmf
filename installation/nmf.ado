@@ -64,13 +64,13 @@ program define nmf, rclass
     // Store results of NMF using stata matrices
     matrix W = r(W)
     matrix H = r(H)
-    matrix norms = r(norms)
+    matrix error = r(error)
 
     // Creates frames containing output matrices: W, H and norms
-    display "Creating frames W, H and norms to hold results."
+    display "Creating frames W, H and error to hold results."
 
     // Create empty new frames to hold matrices
-    foreach outputFrame in W H norms {
+    foreach outputFrame in W H error {
 
         // If a frame with the given name exists - drops and recreates it
         capture confirm frame `outputFrame'
@@ -89,11 +89,11 @@ program define nmf, rclass
     }
 
     // Add iteration identifier to norms frame
-    frame norms {
-        rename norms1 epoch
-        rename norms2 totalLoss
-        rename norms3 averageLoss
-        local ymax = averageLoss[2]
+    frame error {
+        rename error1 epoch
+        rename error2 total_loss
+        rename error3 average_loss
+        local ymax = average_loss[2]
     }
 
     // Plots the normalisation values calculated after each iteration
@@ -103,9 +103,9 @@ program define nmf, rclass
         if "`loss'" == "kl" local lossString "Generalized Kullback-Leibler Divergence"
         if "`loss'" == "eu" local lossString "Frobenius (Euclidean) Error "
 
-        frame norms: graph twoway line averageLoss epoch if epoch > 0,                                                                                 ///
-                                                      title("Loss Function")                                                                            ///
-                                                      xtitle("Epoch") xlabel(, labsize(*0.75) grid glcolor(gs15))                                   ///
+        frame norms: graph twoway line average_loss epoch if epoch > 0,                                                                                      ///
+                                                      title("Loss Function")                                                                                 ///
+                                                      xtitle("Epoch") xlabel(, labsize(*0.75) grid glcolor(gs15))                                            ///
                                                       ytitle("Mean `lossString'") yscale(range(0 .)) ylabel(#5, ang(h) labsize(*0.75) grid glcolor(gs15))    ///
                                                       graphregion(color(white))
     }

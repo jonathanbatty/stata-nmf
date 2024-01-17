@@ -14,7 +14,7 @@
 This repository contains a number of implementations of non-negative matrix factorisation (NMF) using simple multiplicative update rules, implemented in Stata using optimised Mata functions.
 
 ## Installation
-The package can be installed from GitHub, using the `net install` syntax:
+The package can be installed from GitHub using `net install`:
 
 ```
 net install nmf, from("https://raw.githubusercontent.com/jonathanbatty/stata-nmf/main/installation/") replace
@@ -22,10 +22,26 @@ net install nmf, from("https://raw.githubusercontent.com/jonathanbatty/stata-nmf
 ```
 
 ## Syntax
-Syntax
+The syntax for `nmf` is as follows:
+
+```
+nmf varlist, k() [options]
+
+[options] = epoch() initial() loss() stop() nograph()
+```
+
+See the help file using `help nmf` for full details of each option.
+
+The most basic usage is as follows:
+
+```
+nmf colvar_*, k(n)
+```
+
+Whereby a factorisation of the matrix stored in colvar_1, colvar_2, colvar_3, ... , colvar_n will be performed, resulting in matrices W and H of rank n. The resulting matrices will be stored in frames W and H and can be accessed using `frame change W` and `frame change H`, respectively. A summary of the loss parameters by epoch can be viewed using `frame change error`. Note: return to the original dataframe using `frame change default`.
 
 ## Examples
-Examples
+Examples of running NMF in 3 different contexts are given in `./examples/`. These use the sample datasets included with the nmf package: `faces.dta`, `nsclc.dta` and `trajectories.dta`.
 
 ## Feedback
 Please open an [issue](https://github.com/jonathanbatty/stata-nmf/issues) to report errors, feature enhancements, and/or other requests. 
@@ -34,9 +50,8 @@ Please open an [issue](https://github.com/jonathanbatty/stata-nmf/issues) to rep
 **v1.00 (16/01/24)**
  - Initial release.
 
-
 ## Roadmap
-- Re-implement solver using C++ for speed and stability.
+- Tentative plan to implement core NMF solver using C++ plugin for speed and stability.
 
 ## Acknowledgements
 This project was funded by the AI for Science and Government Fund, via the Alan Turing Institute Health Programme (TU/ASG/R-SPEH-114). JB received funding from the Wellcome Trust 4ward North Clinical Research Training Fellowship (227498/Z/23/Z; R127002). 
