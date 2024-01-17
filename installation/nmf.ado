@@ -452,7 +452,6 @@ scalar lossDivergence(real matrix A,
 
     }
 
-    
     return(divergence)
 }
 
