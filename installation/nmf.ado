@@ -46,9 +46,6 @@ program define nmf, rclass
     //      H - factor (encoding or coefficient) matrix H 
     //
 
-    // If a value for the number of epochs is not passed, this will default to 200. 
-    //if "`epoch'" == "" local epoch = 200
-
     // If a value for initialisation method is not passed, default option is is random initialisation 
     if "`initial'" == "" local initial "randomu"
 
@@ -70,7 +67,7 @@ program define nmf, rclass
     matrix error = r(norms)
 
     // Creates frames containing output matrices: W, H and norms
-    display "Creating frames W, H and error to hold results."
+    display as text "Creating frames W, H and error to hold results."
 
     // Create empty new frames to hold matrices
     foreach outputFrame in W H error {
@@ -113,7 +110,7 @@ program define nmf, rclass
                                                       graphregion(color(white))
     }
 
-    display "Returning final matrices in r(W), r(H) and r(error)"
+    display as text "Returning final matrices in r(W), r(H) and r(error)"
 
     // Return final results
     return matrix W W
@@ -188,6 +185,7 @@ void nmf(string scalar varlist,
     norms[1, 3] = normResult / (length(A) - missing(A))
 
     // Updating matrices the given number of iterations
+    displayas("text")
     printf("\nFactorizing matix...{space 29} Maximum number of epochs set at: %9.0f \n\n", epoch)
 
     printf("{txt}{space 4}Epoch {c |}{space 12}Loss Function {c |}{space 5}Total Error {c |}{space 5}Mean Error {c |}{space 5}Relative Error\n")
