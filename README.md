@@ -44,7 +44,7 @@ Whereby a factorisation of the matrix stored in colvar_1, colvar_2, colvar_3, ..
 Examples of running NMF in 3 different contexts are given in `./examples/`. These use the sample datasets included with the nmf package: `faces.dta`, `nsclc.dta` and `trajectories.dta`.
 
 ## Feedback
-Please open an [issue](https://github.com/jonathanbatty/stata-nmf/issues) to report errors, feature enhancements, and/or other requests. 
+Please [open an issue](https://github.com/jonathanbatty/stata-nmf/issues) to report errors, suggest feature enhancements, and/or make any other requests. 
 
 ## Change Log
 **v1.00 (16/01/24)**
