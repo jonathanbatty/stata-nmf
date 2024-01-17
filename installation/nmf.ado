@@ -47,7 +47,7 @@ program define nmf, rclass
     //
 
     // If a value for the number of epochs is not passed, this will default to 200. 
-    if "`epoch'" == "" local epoch = 200
+    //if "`epoch'" == "" local epoch = 200
 
     // If a value for initialisation method is not passed, default option is is random initialisation 
     if "`initial'" == "" local initial "randomu"
