@@ -36,3 +36,7 @@ nmf v*, k(`rank') epoch(1000) initial(randomu) loss(eu) nograph
 // End of file
 
 
+
+
+net install nmf, from("https://raw.githubusercontent.com/jonathanbatty/stata-nmf/main/installation/") replace
+help nmf
