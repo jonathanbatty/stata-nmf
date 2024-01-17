@@ -20,7 +20,7 @@ Perform matrix decomposition using NMF:
 {p 8 17 2}
 {cmdab:nmf}
 [{varlist}]
-{cmd:,} {bf: k(#)} {bf: epoch(#)} [{it:options}]
+{cmd:,} {bf: k(#)}[{it:options}]
 
 {synoptset 20 tabbed}{...}
 {synopthdr}
@@ -56,8 +56,8 @@ approximatation for A may be achieved with k << rank(A).
 {pstd}
 NMF is a NP-hard problem. As such, multiplicative updates of matrices W and H are iteratively  
 performed in order to minimise the generalized error function, {c |}{c |}A - WH{c |}{c |}. This 
-implements the methods first reported by Paatero and Tapper[1] and later popularised by Lee, D. 
-and Seung[2, 3].
+implements the methods first reported by Paatero and Tapper[1] and later popularised by Lee and 
+Seung[2, 3].
 
 
 {marker options}{...}
