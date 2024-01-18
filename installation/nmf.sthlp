@@ -112,16 +112,22 @@ specifies that W and H are initialised using NNDSVD, in which zeroes are filled 
 {marker loss()}{...}
 {phang}
 {opt loss(option)}
-indicates which loss function will be minimized during the optimization of the decomposition. This sets the error function 
-for {c |}{c |}A - WH{c |}{c |}. Options include: eu, is and kl. Default is {cmd: loss(eu)}. Available {it:option}s are:
-
-{phang2}
-{opt is},
-the default, specifies that .
+indicates the loss function that will be minimised during the matrix decomposition. This is the error function for {c |}{c |}A - WH{c |}{c |}. 
+Options include: eu, is and kl. Note that the Itakura-Saito divergence (is) requires no missing data to be present in A.
 
 {phang2}
 {opt eu},
-specifies that .
+the default, specifies that the Frobenius (Euclidean) norm, char(189) {&Sigma} (W - H){sup:2}
+
+{phang2}
+{opt kl},
+specifies that the generalized Kullback-Leibler divergence
+
+{phang2}
+{opt is},
+specifies that the Itakura-Saito divergence.
+
+
 
 {phang2}
 {opt kl},
