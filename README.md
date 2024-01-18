@@ -9,7 +9,7 @@
 ---
 
 # Non-negative Matrix Factorisation (NMF) for Stata
-(v1.00, 16 Jan 2024)
+(v1.01, 18 Jan 2024)
 
 This repository contains a number of implementations of non-negative matrix factorisation (NMF) using simple multiplicative update rules, implemented in Stata using optimised Mata functions.
 
@@ -49,6 +49,9 @@ Please [open an issue](https://github.com/jonathanbatty/stata-nmf/issues) to rep
 ## Change Log
 **v1.00 (16/01/24)**
  - Initial release.
+**v1.01 (18/01/24)**
+- Added examples of applications.
+- Minor bug fixes.
 
 ## Roadmap
 - Tentative plan to implement core NMF solver using C++ plugin for speed and stability.
