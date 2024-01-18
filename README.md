@@ -1,6 +1,6 @@
 ![NMF in Stata](assets/package.png?raw=true "NMF in Stata")
 
-![StataMin](https://img.shields.io/badge/stata-2024-blue) ![issues](https://img.shields.io/github/issues/jonathanbatty/stata-nmf) ![license](https://img.shields.io/github/license/jonathanbatty/stata-nmf) ![version](https://img.shields.io/github/v/release/jonathanbatty/stata-nmf) ![release](https://img.shields.io/github/release-date/jonathanbatty/stata-nmf) ![Stars](https://img.shields.io/github/stars/jonathanbatty/stata-nmf) 
+![StataMin](https://img.shields.io/badge/stata-17-blue) ![issues](https://img.shields.io/github/issues/jonathanbatty/stata-nmf) ![license](https://img.shields.io/github/license/jonathanbatty/stata-nmf) ![version](https://img.shields.io/github/v/release/jonathanbatty/stata-nmf) ![release](https://img.shields.io/github/release-date/jonathanbatty/stata-nmf) ![Stars](https://img.shields.io/github/stars/jonathanbatty/stata-nmf) 
 
 ---
 
