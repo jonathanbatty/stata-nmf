@@ -144,10 +144,10 @@ suppresses plotting of a line graph to depict the loss function decreasing with 
 
 {pstd}
 A number of demonstration .do files are available, complete with sample data. These can be found at the following links:
- {net "from https://raw.githubusercontent.com/jonathanbatty/stata-nmf/main/examples/metagenes.do": metagenes.do}
- {net "from https://raw.githubusercontent.com/jonathanbatty/stata-nmf/main/examples/imputation.do": imputation.do}
- {net "from https://raw.githubusercontent.com/jonathanbatty/stata-nmf/main/examples/faces.do": v.do}
- {net "from https://raw.githubusercontent.com/jonathanbatty/stata-nmf/main/examples/trajectories.do": trajectories.do}
+{net "get from https://raw.githubusercontent.com/jonathanbatty/stata-nmf/main/examples/metagenes.do": metagenes.do}
+{net "get from https://raw.githubusercontent.com/jonathanbatty/stata-nmf/main/examples/imputation.do": imputation.do}
+{net "get from https://raw.githubusercontent.com/jonathanbatty/stata-nmf/main/examples/faces.do": v.do}
+{net "get from https://raw.githubusercontent.com/jonathanbatty/stata-nmf/main/examples/trajectories.do": trajectories.do}
 
 {marker references}{...}
 {title:References}
