@@ -21,6 +21,8 @@ net install nmf, from("https://raw.githubusercontent.com/jonathanbatty/stata-nmf
 // Set seed
 set seed 12345
 
+// Load synthetic disease matrix dataset
+use "https://raw.githubusercontent.com/jonathanbatty/stata-nmf/main/installation/disease_matrix.dta"
 
 // End of file
 

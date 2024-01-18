@@ -9,10 +9,11 @@
 	Overview
 	--------
 	This script demonstrates how NMF can be used in Stata to identify 'metagenes'
-	in microarray gene expression data from 100 non-small cell lung cancer (NSCLC)
-	samples. This is a subset of open data from: Botling J, et al. Biomarker discovery 
-	in non-small cell lung cancer: integrating gene expression profiling, meta-analysis, 
-	and tissue microarray validation. Clin Cancer Res. 2013;19(1):194–204.
+	in microarray gene expression data, from 100 samples of non-small cell lung 
+	cancer (NSCLC) tissue. This is a subset of open data from: Botling J, et al. 
+	Biomarker discovery in non-small cell lung cancer: integrating gene expression 
+	profiling, meta-analysis, and tissue microarray validation. Clin Cancer Res. 
+	2013;19(1):194–204.
 	
 ==============================================================================*/
 
