@@ -98,15 +98,16 @@ specifies that W and H are initialised by sampling values from a {bf:normal} dis
 
 {phang2}
 {opt nndsvd},
-specifies that W and H are initialised using non-negative double singular value decomposition[4].
+specifies that W and H are initialised using non-negative double singular value decomposition (NNDSVD)[4]. This is deterministic (non-random) and was designed
+to ehance the initialisation stage of NMF. 
 
 {phang2}
 {opt nndsvda},
-specifies that 
+specifies that W and H are initialised using NNDSVD, in which zeroes are filled with the average of A. It is suggested that this may be better when sparsity is not desired.
 
 {phang2}
 {opt nndsvdar},
-specifies that .
+specifies that W and H are initialised using NNDSVD, in which zeroes are filled with small random values.
 
 {marker loss()}{...}
 {phang}
