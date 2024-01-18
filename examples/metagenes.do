@@ -51,3 +51,6 @@ frame X_hat: svmat X_hat, name(x)
 
 net install nmf, from("https://raw.githubusercontent.com/jonathanbatty/stata-nmf/main/installation/") replace
 help nmf
+
+
+

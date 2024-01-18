@@ -6,6 +6,8 @@
 {viewerjumpto "Remarks" "nmf##remarks"}{...}
 {viewerjumpto "References" "nmf##references"}{...}
 {viewerjumpto "Examples" "nmf##examples"}{...}
+{viewerjumpto "Acknowledgements" "nmf##acknowledgements"}{...}
+{viewerjumpto "Citation" "nmf##citation"}{...}
 {title:Title}
 
 {phang}
@@ -84,20 +86,19 @@ advise that a greater number of epochs should be used.
 {marker initial()}{...}
 {phang}
 {opt initial(option)}
-indicates how matrices {it: W} and {it: H} are initialized.  The
-available {it:option}s are:
+indicates how matrices {it: W} and {it: H} are initialized.  The available {it:option}s are:
 
 {phang2}
 {opt randomu},
-the default, specifies that .
+the default, specifies that W and H are initialised by sampling values from a {bf:uniform} distribution, in the range [min(A), max(A)].
 
 {phang2}
 {opt randomn},
-specifies that .
+specifies that W and H are initialised by sampling values from a {bf:normal} distribution, in the range [1, 2].
 
 {phang2}
 {opt nndsvd},
-specifies that .
+specifies that W and H are initialised using non-negative double singular value decomposition[4].
 
 {phang2}
 {opt nndsvda},
@@ -158,16 +159,19 @@ For detailed information on the whatever statistic, see
 {title:References}
 
 {pstd}
-[1] Paatero, P. and Tapper U. Positive matrix factorization: A non-negative factor model with optimal utilization of error estimates of data values. Environmetrics, 5: pp. 111-126 (1994).
+[1] Paatero, P. and Tapper U (1994). Positive matrix factorization: A non-negative factor model with optimal utilization of error estimates of data values. Environmetrics, 5: pp. 111-126.
 {p_end}
 
 {pstd}
-[2] Lee, D. and Seung, H. Learning the parts of objects by non-negative matrix factorization. Nature 401, pp. 788–791 (1999).
+[2] Lee, D. and Seung, H (1999). Learning the parts of objects by non-negative matrix factorization. Nature, 401, pp. 788–791.
 {p_end}
 
 {pstd}
-[3] Lee, D. and Seung, H. Algorithms for Non-negative Matrix Factorization. Advances in Neural Information Processing Systems 13: Proceedings of the 2000 Conference, MIT Press. pp. 556–562 (2000).
+[3] Lee, D. and Seung, H (2000). Algorithms for Non-negative Matrix Factorization. Advances in Neural Information Processing Systems 13: Proceedings of the 2000 Conference, MIT Press. pp. 556–562.
 {p_end}
+
+{pstd}
+[4] Boutsidis, C. and Gallopoulos, E (2008). SVD-based initialization: A head start for nonnegative matrix factorization. Pattern Recognition, 41(4): pp. 1350-1362, .
 
 {marker examples}{...}
 {title:Examples}
@@ -176,4 +180,15 @@ For detailed information on the whatever statistic, see
 
 {phang}{cmd:. nmf k*,	k(15) epoch(100) initial(randomu) stop(1.0e-4) loss(kl) nograph	}{p_end}
 
+{marker acknowledgements}{...}
+{title:Acknowledgements}
 
+{pstd}
+This project was funded by the AI for Science and Government Fund, via the Alan Turing Institute Health Programme (TU/ASG/R-SPEH-114). 
+Jonathan Batty received funding from the Wellcome Trust 4ward North Clinical Research Training Fellowship (227498/Z/23/Z; R127002).
+
+{marker citation}{...}
+{title:Suggested citation}
+
+{pstd}
+Batty, J. A. (2024). Stata package ``nmf'': an implementation of non-negative matrix factorisation in Stata (Version 1.0) [Computer software]. https://github.com/jonathanbatty/stata-nmf

@@ -294,7 +294,7 @@ void randomInit(real matrix A,
         // Generate random values for W in the range [min(A), max(A)]
         W = runiform(rows(A), k, min(A), max(A))
 
-        // Generate random values for W in the range [min(A), max(A)]
+        // Generate random values for H in the range [min(A), max(A)]
         H = runiform(k, cols(A), min(A), max(A))
 
     } 
@@ -302,7 +302,7 @@ void randomInit(real matrix A,
         // Generate random values for W in the range [1 - 2]
         W = rnormal(rows(A), k, 2, 1)
 
-        // Generate random values for W in the range [1 - 2]
+        // Generate random values for H in the range [1 - 2]
         H = rnormal(k, cols(A), 2, 1)
     }
 }
