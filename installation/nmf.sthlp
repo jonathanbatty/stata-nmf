@@ -117,11 +117,11 @@ Options include: eu, is and kl. Note that the Itakura-Saito divergence (is) requ
 
 {phang2}
 {opt eu},
-the default, specifies the Frobenius (Euclidean) distance.
+the default, specifies the Frobenius (Euclidean) distance. This may be preferred when matrix A contains continous data.
 
 {phang2}
 {opt kl},
-specifies specifies the generalized Kullback-Leibler divergence.
+specifies specifies the generalized Kullback-Leibler divergence. This may be preferred when matrix A contains binary or count data.
 
 {phang2}
 {opt is},
@@ -143,8 +143,7 @@ suppresses plotting of a line graph to depict the loss function decreasing with 
 {title:Remarks}
 
 {pstd}
-For detailed information on the whatever statistic, see
-{manlink R Intro}.
+A number of demonstration .do files are available, complete with sample data. These can be found at {view "https://github.com/jonathanbatty/stata-nmf/tree/main/examples"}
 
 {marker references}{...}
 {title:References}
