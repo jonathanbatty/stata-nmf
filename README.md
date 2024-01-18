@@ -49,6 +49,7 @@ Please [open an issue](https://github.com/jonathanbatty/stata-nmf/issues) to rep
 ## Change Log
 **v1.00 (16/01/24)**
  - Initial release.
+   
 **v1.01 (18/01/24)**
 - Added examples of applications.
 - Minor bug fixes.
