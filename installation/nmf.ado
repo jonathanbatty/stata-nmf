@@ -433,8 +433,7 @@ scalar lossDivergence(real matrix A,
     else if (hasMissing == 1) {
         if (loss == "is") {
             // is = Itakura-Saito divergence (only if no zero/missing values)
-            div = A :/ (W*H)
-            divergence = sum(div) - (rows(A) * cols(A)) - sum(log(div))
+            _error("This distance metric is not supported for missing data.")
         }
         else if (loss == "kl") {
             // kl = Generalized Kullback-Leibler divergence

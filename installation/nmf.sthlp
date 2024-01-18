@@ -45,7 +45,7 @@ Perform matrix decomposition using NMF:
 {title:Description}
 
 {pstd}
-The aim of {cmd:nmf} is to decompose matrix A into a low-rank matrix approximation such that 
+The aim of {cmd:nmf} is to decompose matrix A into a lower-rank matrix approximation such that 
 X ≈ WH, where A, W and H are made up of non-negative, real numbers. Missing values are 
 permitted. If X is an n x m matrix, the dimensions of W and H will be n x k and k x m, 
 respectively, whereby k represents the rank of the decomposition. In many cases, a good 
@@ -69,10 +69,16 @@ These can be accessed using:{cmd: frame change W}, {cmd: frame change H} and {cm
 {dlgtab:Main}
 
 {phang}
-{opt k(#)} is required and specifies the rank for the decomposition.
+{opt k(#)} is required and specifies the rank for the decomposition. The value of k must be greater 
+than or equal to 2, and must be less than the minimum of the number of columns and rows of the initial 
+matrix to be factorised.
+
 
 {phang}
-{opt epoch(#)} is required and sets the maximum number of epochs (iterations) over which the decomposition is optimized. Deafult = 200.
+{opt epoch(#)} sets the maximum number of epochs (iterations) over which the decomposition is optimized. 
+If this is not specified, NMF runs for 200 epochs by default. If convergence has not been reached by the
+number of epochs specified in epoch() (or by 200 epochs, if no value is specified), an error message will
+advise that a greater number of epochs should be used.
 
 {dlgtab:Options}
 

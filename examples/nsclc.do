@@ -42,6 +42,6 @@ net install nmf, from("https://raw.githubusercontent.com/jonathanbatty/stata-nmf
 
 nmf p*, k(5) epoch(500)
 
-nmf p*, k(5)
+nmf p*, k(5) nograph
 
 help nmf
