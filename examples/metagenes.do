@@ -38,10 +38,16 @@ nmf v*, k(`rank') epoch(1000) initial(randomu) loss(eu) nograph
 
 
 
+
+nmf p*, k(5) epoch(500) nograph
+
+frame W: mkmat W*, matrix(W)
+frame H: mkmat H*, matrix(H)
+matrix X_hat = W * H
+
+frame create X_hat
+frame X_hat: svmat X_hat, name(x)
+
+
 net install nmf, from("https://raw.githubusercontent.com/jonathanbatty/stata-nmf/main/installation/") replace
-
-nmf p*, k(5) epoch(500)
-
-nmf p*, k(5) nograph
-
 help nmf

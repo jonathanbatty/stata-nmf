@@ -73,14 +73,13 @@ These can be accessed using:{cmd: frame change W}, {cmd: frame change H} and {cm
 than or equal to 2, and must be less than the minimum of the number of columns and rows of the initial 
 matrix to be factorised.
 
+{dlgtab:Options}
 
 {phang}
 {opt epoch(#)} sets the maximum number of epochs (iterations) over which the decomposition is optimized. 
 If this is not specified, NMF runs for 200 epochs by default. If convergence has not been reached by the
 number of epochs specified in epoch() (or by 200 epochs, if no value is specified), an error message will
 advise that a greater number of epochs should be used.
-
-{dlgtab:Options}
 
 {marker initial()}{...}
 {phang}
