@@ -117,7 +117,7 @@ Options include: eu, is and kl. Note that the Itakura-Saito divergence (is) requ
 
 {phang2}
 {opt eu},
-the default, specifies that the Frobenius (Euclidean) norm, = char(189) {&Sigma} (W{sub:ij} - H{sub:ij}){sup:2}
+the default, specifies that the Frobenius (Euclidean) distance, = {char 189}{char 211}(W{sub:ij} - H{sub:ij}){sup:2}
 
 {phang2}
 {opt kl},
