@@ -117,43 +117,27 @@ Options include: eu, is and kl. Note that the Itakura-Saito divergence (is) requ
 
 {phang2}
 {opt eu},
-the default, specifies that the Frobenius (Euclidean) distance, = {char 189}{char 211}(W{sub:ij} - H{sub:ij}){sup:2}
+the default, specifies the Frobenius (Euclidean) distance.
 
 {phang2}
 {opt kl},
-specifies that the generalized Kullback-Leibler divergence
+specifies specifies the generalized Kullback-Leibler divergence.
 
 {phang2}
 {opt is},
-specifies that the Itakura-Saito divergence.
-
-
-
-{phang2}
-{opt kl},
-the default, specifies that .
+specifies the Itakura-Saito divergence.
 
 {marker stop()}{...}
 {phang}
 {opt stop(#)}
-sets the early stopping threshold for convergence; if {cmd: stop(0)} is set, optimization will continue for the set number of epochs. If ((previous error - current error) / error at initiation) < stop tolerance, convergence has occured and nmf terminates. Default is {cmd: stop(1.0e-4)}. 
-The available {it:option}s are:
-
-{phang2}
-{opt 0},
-specifies that .
-
-{phang2}
-{opt 1.0e-4},
-the default, specifies that .
+sets the early stopping threshold for convergence; if {cmd: stop(0)} is set, optimisation will continue for the set number of epochs without early stopping. 
+If ((previous error - current error) / error at initiation) < stop tolerance, convergence has occured and nmf terminates. 
+The default value is 1.0e-4.
 
 {marker nograph}{...}
 {phang}
 {opt nograph}
-indicates the tolerance for early stopping.  The
-available {it:option}s are:
-
-
+suppresses plotting of a line graph to depict the loss function decreasing with each successive epoch.
 
 {marker remarks}{...}
 {title:Remarks}
