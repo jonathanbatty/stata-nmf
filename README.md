@@ -41,7 +41,7 @@ nmf colvar_*, k(n)
 Whereby a factorisation of the matrix stored in colvar_1, colvar_2, colvar_3, ... , colvar_n will be performed, resulting in matrices W and H of rank n. The resulting matrices will be stored in frames W and H and can be accessed using `frame change W` and `frame change H`, respectively. A summary of the loss parameters by epoch can be viewed using `frame change error`. Note: return to the original dataframe using `frame change default`.
 
 ## Examples
-Examples of running NMF in 3 different contexts are given in `./examples/`. These use the sample datasets included with the nmf package: `faces.dta`, `nsclc.dta` and `trajectories.dta`.
+Examples of running NMF in 4 different contexts are given in `./examples/`. These use the sample datasets included with the nmf package: `faces.dta`, `nsclc.dta` and `trajectories.dta`.
 
 ## Feedback
 Please [open an issue](https://github.com/jonathanbatty/stata-nmf/issues) to report errors, suggest feature enhancements, and/or make any other requests. 
