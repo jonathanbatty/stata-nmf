@@ -1,6 +1,6 @@
 /*============================================================================== 
    
-	Title:          Demonstration of NMF for use in identifying teporal  
+	Title:          Demonstration of NMF for use in identifying temporal  
 					trajectories using clinical data
 	Author(s):      Dr Jonny Batty, BSc(Hons) MBChB(Hons) MPH
 	Contact(s):     J.Batty@leeds.ac.uk
