@@ -26,11 +26,10 @@ clear all
 net install nmf, from("https://raw.githubusercontent.com/jonathanbatty/stata-nmf/main/installation/") replace
 
 // Install dependencies specific to this demonstration 
-// Note: beyon Stata 17.0, the nmf package has no dependencies.
-// ssc install heatplot
-// ssc install palettes
-// ssc install colrspace
-// ssc install gtools
+ssc install heatplot
+ssc install palettes
+ssc install colrspace
+ssc install gtools
 
 // Set seed
 set seed 12345
