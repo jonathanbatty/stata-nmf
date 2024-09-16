@@ -60,5 +60,7 @@ Please [open an issue](https://github.com/jonathanbatty/stata-nmf/issues) to rep
 ## Acknowledgements
 This project was funded by the AI for Science and Government Fund, via the Alan Turing Institute Health Programme (TU/ASG/R-SPEH-114). JB received funding from the Wellcome Trust 4ward North Clinical Research Training Fellowship (227498/Z/23/Z; R127002). 
 
+This work was done while JB was a member of the [Survivorship and Multimorbidity Epidemiology Group](https://multimorbidity-research-leeds.github.io/) at the University of Leeds, led by Dr Marlous Hall.
+
 ## Suggested Citation
 Batty, J. A. (2024). Stata package ``nmf'': an implementation of non-negative matrix factorisation in Stata (Version 1.0) [Computer software]. https://github.com/jonathanbatty/stata-nmf
